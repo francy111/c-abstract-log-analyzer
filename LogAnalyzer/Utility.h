@@ -116,7 +116,7 @@ void mainMenu(char* filePath, char* extraMsg, char* color);
  * Also prints the currently selected statistic and filters, an optional extra messsage
  * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
  */
-void logAnalysisMenu(enum analysis_statistic operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color);
+void logAnalysisMenu(enum analysis_statistic operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color, enum outcomes analysisOutcome);
 
 /**
  * Prints a menu to add a filter
@@ -167,4 +167,12 @@ void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet
  * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
  */
 void statisticMenu(enum analysis_statistic as, char* extraMsg, char* color);
+
+/**
+ * Reads a line from the file pointed by 'filePtr' and stores it in the buffer 'buf'
+ *
+ * Returns either the number of bytes actually read 
+ * or, in case of any error, -1
+ */
+int readLine(FILE* filePtr, char* buf);
 #endif

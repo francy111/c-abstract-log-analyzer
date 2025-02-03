@@ -144,8 +144,7 @@ void getDateTime(struct tm* dateTime) {
  * All characters from 0 to size-1 are set to '\0'
  */
 void nullString(char str[], size_t size) {
-    for (int i = 0; i < size; i++)
-        str[i] = '\0';
+	memset(str, '\0',  size);
 }
 
 /**
@@ -179,13 +178,14 @@ void mainMenu(char* filePath, char* extraMsg, char* color) {
  * Also prints the currently selected statistic and filters, an optional extra messsage
  * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
  */
-void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color) {
+void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color, enum outcomes analysisOutcome) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Settings # # # # #\n");
 	printf("[" BOLD CYAN "+" RESET "] Add filter\n");
 	printf("[" BOLD CYAN "-" RESET "] Remove filter\n");
 	printf("[" BOLD CYAN "m" RESET "] Select statistic\n");
 	printf("[" BOLD GREEN "s" RESET "] Start analysis\n");
+	if (analysisOutcome == success) printf("[" BOLD MAGENTA "r" RESET "] Show analysis results\n");
 
 	// Prints the currently selected statistic
 	printf("\nSelected statistic: [" BOLD MAGENTA);
@@ -373,4 +373,44 @@ void statisticMenu(enum analysis_operation as, char* extraMsg, char* color) {
 	if (extraMsg[0] != '\0') printf(BOLD "\n%s%s\n" RESET, color, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Cancel\n\n");
+}
+
+/**
+ * Reads a line from the file pointed by 'filePtr' and stores it in the buffer 'buf'
+ *
+ * Returns either the number of bytes actually read
+ * or, in case of any error, -1
+ */
+int readLine(FILE* filePtr, char* buf) {
+
+	char chr = '\0';
+	int index = 0, done = 0;
+
+	// Check that filePtr is not null just to be sure
+	if (filePtr != NULL) {
+
+		// Read one character at a time
+		while (!done && (chr != EOF)) {
+			chr = getc(filePtr);
+
+			// We found the end on the current line
+			if (chr == '\n') {
+				buf[index] = '\0'; // We swap it with '\0' since the original '\n' was used just for the file formatting
+				done = 1;
+				
+			}
+
+			// Up until we find a '\n' we are 'buinding' the line
+			else {    
+				buf[index] = chr;
+				index++;
+			}
+		}
+	}
+	else {
+		// Since we increment 'index' with every written character, it also acts as a count of written characters, to signal an error (related to the file), we set this to -1
+		index = -1;
+	}
+
+	return index;
 }

@@ -2,6 +2,7 @@
 #define LOGENTRY_H
 
 #include <time.h>
+#include <stdio.h>
 
 #define USER_LENGTH 32
 #define OPERATION_LENGTH 128
@@ -59,5 +60,19 @@ void printInfoType(enum info_type t);
  * 'success' (1) -> Success
  */
 void printOutcome(enum outcomes out);
+
+/**
+ * Resets the given entry, resetting every field
+ *
+ * Every field is set to its default value
+ */
+void resetEntry(LogEntry* entry);
+
+/**
+ * Reads an entry from the log file and stores it in 'entry'
+ *
+ * 'filePtr' is a pointer to a file, which we suppose is a log file
+ */
+int readEntry(LogEntry* entry, FILE* filePtr);
 
 #endif
