@@ -100,9 +100,9 @@ void nullString(char str[], size_t size);
  *  (x) Close application
  *
  * Also prints the currently open log file and an optional extra messsage
- * (Usually used as a feedback for the previous iteration), written in 'color' ansi escape sequence
+ * (Usually used as a feedback for the previous iteration)
  */
-void mainMenu(char* filePath, char* extraMsg, char* color);
+void mainMenu(char*cd, char* filePath, char* extraMsg);
 
 /**
  * Prints the 'settings' menu, also known as log analysis section
@@ -113,10 +113,10 @@ void mainMenu(char* filePath, char* extraMsg, char* color);
  *  (s) Starts the analysis
  *  (x) Exits to the main menu
  *
- * Also prints the currently selected statistic and filters, an optional extra messsage
- * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
+ * Also prints the currently selected statistic and filters and an optional extra messsage
+ * (Usually used as a feedback for the previous iteration)
  */
-void logAnalysisMenu(enum analysis_statistic operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color, enum outcomes analysisOutcome);
+void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, enum outcomes analysisOutcome);
 
 /**
  * Prints a menu to add a filter
@@ -132,9 +132,9 @@ void logAnalysisMenu(enum analysis_statistic operation, char* userFilter, time_t
  *  (x) Exits to the main menu
  *
  * Also prints  an optional extra messsage (Usually used as a feedback for 
- * the previous iteration) is written in 'color' ansi escape sequence
+ * the previous iteration)
  */
-void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color);
+void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
 
 /**
  * Prints a menu to remove a filter
@@ -150,9 +150,9 @@ void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, c
  *  (x) Exits to the main menu
  *
  * Also prints  an optional extra messsage (Usually used as a feedback for
- * the previous iteration) is written in 'color' ansi escape sequence
+ * the previous iteration)
  */
-void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color);
+void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
 
 /**
  * Prints a menu to select a statistic
@@ -164,9 +164,9 @@ void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet
  *  (x) Exits to the main menu
  *
  * Also prints the currently selected statistic , as well as,an optional extra messsage 
- * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
+ * (Usually used as a feedback for the previous iteration)
  */
-void statisticMenu(enum analysis_statistic as, char* extraMsg, char* color);
+void statisticMenu(enum analysis_statistic as, char* extraMsg);
 
 /**
  * Reads a line from the file pointed by 'filePtr' and stores it in the buffer 'buf'
@@ -175,4 +175,24 @@ void statisticMenu(enum analysis_statistic as, char* extraMsg, char* color);
  * or, in case of any error, -1
  */
 int readLine(FILE* filePtr, char* buf);
+
+/**
+ * Disables the shell ECHO, making 
+ * keyboard typing invisible
+ */
+void disableEcho(void);
+
+/**
+ * Enables the shell ECHO, making
+ * keyboard typing visible
+ */
+void enableEcho(void);
+
+/**
+ * Changes the current workind directory
+ * goind from C: (or the disk the file is in)
+ * to the actual directory containing the executable
+ */
+void setWorkingDirToExecutable();
+
 #endif

@@ -67,7 +67,8 @@ int readEntry(LogEntry* entry, FILE* filePtr) {
 	char buf[1024];
 
 	// Every line has this format: user@dd.mm.yyyy-hh:mm:ss-operation-type-outcome-ex.time
-	if (readLine(filePtr, buf) > 0) {
+	int r = readLine(filePtr, buf);
+	if (r > 0) {
 
 		// User
 		char* context = 0;
@@ -88,7 +89,12 @@ int readEntry(LogEntry* entry, FILE* filePtr) {
 			result = 1;
 		}
 
+		dateTime.tm_mon--;
+		dateTime.tm_year -= 1900;
 		entry->date = mktime(&dateTime);
+		if (entry->date == (time_t)(-1)) {
+			result = 1;
+		}
 
 		// Operation
 		token = strtok_s(NULL, "-", &context);
@@ -121,14 +127,12 @@ int readEntry(LogEntry* entry, FILE* filePtr) {
 
 		// Execution time
 		token = strtok_s(NULL, "-", &context);
-		char* endPtr;
-		entry->executionTime = strtod(token, &endPtr);
-		if (*endPtr == '\0') {
+		if (sscanf_s(token, "%lf", &(entry->executionTime)) != 1) {
 			result = 1;
 		}
 		
 	} else {
-		result = 1;
+		result = -1;
 	}
 	return result;
 }

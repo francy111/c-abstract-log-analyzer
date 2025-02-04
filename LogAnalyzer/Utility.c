@@ -1,6 +1,9 @@
 #include "Utility.h"
 #include "LogEntry.h"
 #include <float.h>
+#include <stdio.h>
+#include <windows.h>
+#include <libloaderapi.h>
 #include <time.h>
 #include <limits.h>
 
@@ -154,15 +157,28 @@ void nullString(char str[], size_t size) {
  *  (x) Close application
  *
  * Also prints the currently open log file and an optional extra messsage
- * (Usually used as a feedback for the previous iteration), written in 'color' ansi escape sequence
+ * (Usually used as a feedback for the previous iteration)
  */
-void mainMenu(char* filePath, char* extraMsg, char* color) {
+void mainMenu(char* cd, char* filePath, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Log Analyzer # # # # #\n");
 	printf("[" BOLD CYAN "f" RESET "] Change log file\n");
-	printf("[" BOLD CYAN "s" RESET "] Log analysis\n\n");
-	if (filePath[0] != '\0') printf("Current selected file: [" BOLD MAGENTA "%s" RESET "]\n\n", filePath);
-	if (extraMsg[0] != '\0') printf(BOLD "%s%s" RESET "\n\n", color, extraMsg);
+
+	// Print absolute file path if opened
+	if (filePath[0] != '\0') {
+		char absolutePath[MAX_PATH];
+		nullString(absolutePath, MAX_PATH);
+		GetFullPathNameA(filePath, MAX_PATH, absolutePath, NULL);
+
+		printf("[" BOLD CYAN "s" RESET "] Log analysis\n\n");
+		printf("Current selected file: [" BOLD MAGENTA "%s" RESET "]\n", absolutePath);
+	}
+
+	// Otherwise show working directory so the user knows how to form a relative path
+	else {
+		printf("\nCurrent working directory: [" BOLD MAGENTA "%s" RESET "]\n\n", cd);
+	}
+	if (extraMsg[0] != '\0') printf("\n%s" RESET "\n\n", extraMsg);
 	printf("[" BOLD RED "x" RESET "] Close application\n\n");
 }
 
@@ -176,9 +192,9 @@ void mainMenu(char* filePath, char* extraMsg, char* color) {
  *  (x) Exits to the main menu
  *
  * Also prints the currently selected statistic and filters, an optional extra messsage
- * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
+ * (Usually used as a feedback for the previous iteration)
  */
-void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color, enum outcomes analysisOutcome) {
+void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, enum outcomes analysisOutcome) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Settings # # # # #\n");
 	printf("[" BOLD CYAN "+" RESET "] Add filter\n");
@@ -252,7 +268,7 @@ void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t
 	}
 	if (atLeastOne) printf("\n");
 	printf("]\n");
-	if (extraMsg[0] != '\0') printf("\n" BOLD "%s%s" RESET "\n", color, extraMsg);
+	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Exit settings\n\n");
 }
@@ -271,9 +287,9 @@ void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t
  *  (x) Exits to the main menu
  *
  * Also prints  an optional extra messsage (Usually used as a feedback for
- * the previous iteration) is written in 'color' ansi escape sequence
+ * the previous iteration)
  */
-void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color) {
+void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable filters to add # # # # #\n");
 
@@ -287,7 +303,7 @@ void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, c
 	if (minExTime == 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
 	if (maxExTime == DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
-	if (extraMsg[0] != '\0') printf(BOLD "\n%s%s\n" RESET, color, extraMsg);
+	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Cancel\n\n");
 }
@@ -306,9 +322,9 @@ void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, c
  *  (x) Exits to the main menu
  *
  * Also prints  an optional extra messsage (Usually used as a feedback for
- * the previous iteration) is written in 'color' ansi escape sequence
+ * the previous iteration)
  */
-void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, char* color) {
+void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable filters for removal # # # # #\n");
 
@@ -322,7 +338,7 @@ void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet
 	if (minExTime != 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
 	if (maxExTime != DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
-	if (extraMsg[0] != '\0') printf(BOLD "\n%s%s\n" RESET, color, extraMsg);
+	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Cancel\n\n");
 }
@@ -337,9 +353,9 @@ void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet
  *  (x) Exits to the main menu
  *
  * Also prints the currently selected statistic , as well as,an optional extra messsage
- * (Usually used as a feedback for the previous iteration) is written in 'color' ansi escape sequence
+ * (Usually used as a feedback for the previous iteration)
  */
-void statisticMenu(enum analysis_operation as, char* extraMsg, char* color) {
+void statisticMenu(enum analysis_operation as, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable operations # # # # #\n");
 
@@ -370,7 +386,7 @@ void statisticMenu(enum analysis_operation as, char* extraMsg, char* color) {
 	printAnalysisStatistic(as);
 	printf(RESET "]\n\n");
 
-	if (extraMsg[0] != '\0') printf(BOLD "\n%s%s\n" RESET, color, extraMsg);
+	if (extraMsg[0] != '\0') printf("\n%s\n", extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Cancel\n\n");
 }
@@ -390,8 +406,7 @@ int readLine(FILE* filePtr, char* buf) {
 	if (filePtr != NULL) {
 
 		// Read one character at a time
-		while (!done && (chr != EOF)) {
-			chr = getc(filePtr);
+		while (!done && ((chr = getc(filePtr)) != EOF)) {
 
 			// We found the end on the current line
 			if (chr == '\n') {
@@ -413,4 +428,62 @@ int readLine(FILE* filePtr, char* buf) {
 	}
 
 	return index;
+}
+
+/**
+ * Disables the shell ECHO, making
+ * keyboard typing invisible
+ */
+void disableEcho(void) {
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD mode;
+
+	// Get current terminal settings
+	GetConsoleMode(hStdin, &mode);
+
+	// Disables ECHO, not showning typed input
+	mode &= ~ENABLE_ECHO_INPUT;
+
+	// Apply new settings
+	SetConsoleMode(hStdin, mode);
+}
+
+/**
+ * Enables the shell ECHO, making
+ * keyboard typing visible
+ */
+void enableEcho(void) {
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD mode;
+
+	// Get current terminal settings
+	GetConsoleMode(hStdin, &mode);
+
+	// Enables ECHO, showning typed input
+	mode |= ENABLE_ECHO_INPUT;
+
+	// Apply new settings
+	SetConsoleMode(hStdin, mode);
+}
+
+/**
+ * Changes the current workind directory
+ * goind from C: (or the disk the file is in)
+ * to the actual directory containing the executable
+ */
+void setWorkingDirToExecutable() {
+	char path[1024];
+	DWORD r = GetModuleFileNameA(NULL, path, 1024);
+	if (r != 0) {
+
+		// Finds where the last '\' is, after which is the executable name, so if we stop before, we have the directory containing it
+		char* lastBackslash = strrchr(path, '\\');
+		if (lastBackslash) {
+
+			// End the path to the directory
+			lastBackslash = '\0';
+
+			SetCurrentDirectoryA(path);
+		}
+	}
 }
