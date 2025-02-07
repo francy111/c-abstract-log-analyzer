@@ -44,6 +44,33 @@ enum analysis_statistic { countEntries, avgEx, typTrnd, outTrnd };
 void printAnalysisStatistic(enum analysis_statistic as);
 
 /**
+ * Disables the shell ECHO, making
+ * keyboard typing invisible
+ */
+void disableEcho(void);
+
+/**
+ * Enables the shell ECHO, making
+ * keyboard typing visible
+ */
+void enableEcho(void);
+
+/**
+ * Changes the current workind directory
+ * goind from C: (or the disk the file is in)
+ * to the actual directory containing the executable
+ */
+void setWorkingDirToExecutable();
+
+/**
+ * Reads a line from the file pointed by 'filePtr' and stores it in the buffer 'buf'
+ *
+ * Returns either the number of bytes actually read
+ * or, in case of any error, -1
+ */
+int readLine(FILE* filePtr, char* buf);
+
+/**
  * Empties the input buffer (stdin) from all
  * of the eventual characters still there
  * (usually newlines or spaces)
@@ -64,14 +91,14 @@ long getOptionalInput(char* string, size_t size);
  * Acquires a single character from standard input (stdin)
  * and returns it
  *
- * Either returns the single read character if a single character 
+ * Either returns the single read character if a single character
  * given otherwise, EOF is returned
  */
 char getSingleChar(void);
 
 /**
  * Prints the date_time struct stored in dt in the
- * 'dd.mm.yyyy' (hh:mm:ss) format in BOLD CYAN 
+ * 'dd.mm.yyyy' (hh:mm:ss) format in BOLD CYAN
  */
 void printDateTime(struct tm dt);
 
@@ -79,120 +106,18 @@ void printDateTime(struct tm dt);
  * Acquires the components of a date_time structure from
  * the standard input (stdin) and stores them in the
  * structure pointed by 'dateTime'
- * 
+ *
  * The date is acquired first using the 'dd/mm/yyyy' format
  * The time is acquired right after using the 'hh:mm:ss' format
  */
 void getDateTime(struct tm* dateTime);
 
 /**
- * Empties a maximum of 'size' characters 
+ * Empties a maximum of 'size' characters
  * in the string stored in 'str'
- * 
+ *
  * All characters from 0 to size-1 are set to '\0'
  */
 void nullString(char str[], size_t size);
-
-/**
- * Prints the main menu which displays 3 options:
- *  (f) Specifing a different log file to analyze
- *  (s) Open settings to set filters / interested statistic
- *  (x) Close application
- *
- * Also prints the currently open log file and an optional extra messsage
- * (Usually used as a feedback for the previous iteration)
- */
-void mainMenu(char*cd, char* filePath, char* extraMsg);
-
-/**
- * Prints the 'settings' menu, also known as log analysis section
- * Provides the following options:
- *  (+) Add a filter for the later analysis
- *  (-) Removes a previously added filter
- *  (m) Changes the statistic to be studied
- *  (s) Starts the analysis
- *  (x) Exits to the main menu
- *
- * Also prints the currently selected statistic and filters and an optional extra messsage
- * (Usually used as a feedback for the previous iteration)
- */
-void logAnalysisMenu(enum analysis_operation operation, char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, enum outcomes analysisOutcome);
-
-/**
- * Prints a menu to add a filter
- * Provides the following options (only when they weren't previously added):
- *  (u) Interessed user
- *  (d) Starting date (From which date do we start analyzing entries?)
- *  (t) Ending date (At which date do we stop analyzing entries?)
- *  (p) Interessed operation
- *  (i) Interessed entry type
- *  (o) Interessed output
- *  (-) Minimum execution time
- *  (+) Maximum execution time
- *  (x) Exits to the main menu
- *
- * Also prints  an optional extra messsage (Usually used as a feedback for 
- * the previous iteration)
- */
-void filterAddMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
-
-/**
- * Prints a menu to remove a filter
- * Provides the following options (only when they were previously added):
- *  (u) Interessed user
- *  (d) Starting date (From which date do we start analyzing entries?)
- *  (t) Ending date (At which date do we stop analyzing entries?)
- *  (p) Interessed operation
- *  (i) Interessed entry type
- *  (o) Interessed output
- *  (-) Minimum execution time
- *  (+) Maximum execution time
- *  (x) Exits to the main menu
- *
- * Also prints  an optional extra messsage (Usually used as a feedback for
- * the previous iteration)
- */
-void filterRemoveMenu(char* userFilter, time_t startingDatet, time_t endingDatet, char* operationFilter, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
-
-/**
- * Prints a menu to select a statistic
- * Provides the following options (only the ones not selected can be chosen):
- *  (0) Number of the entries
- *  (1) Average execution time of entries
- *  (2) Trend of entry type(which entries type are there most of ? Info, Warning or Error ?)
- *  (3) Trend of entry outcome(which entries outcome are there most of ? Success or Failure ?)
- *  (x) Exits to the main menu
- *
- * Also prints the currently selected statistic , as well as,an optional extra messsage 
- * (Usually used as a feedback for the previous iteration)
- */
-void statisticMenu(enum analysis_statistic as, char* extraMsg);
-
-/**
- * Reads a line from the file pointed by 'filePtr' and stores it in the buffer 'buf'
- *
- * Returns either the number of bytes actually read 
- * or, in case of any error, -1
- */
-int readLine(FILE* filePtr, char* buf);
-
-/**
- * Disables the shell ECHO, making 
- * keyboard typing invisible
- */
-void disableEcho(void);
-
-/**
- * Enables the shell ECHO, making
- * keyboard typing visible
- */
-void enableEcho(void);
-
-/**
- * Changes the current workind directory
- * goind from C: (or the disk the file is in)
- * to the actual directory containing the executable
- */
-void setWorkingDirToExecutable();
 
 #endif

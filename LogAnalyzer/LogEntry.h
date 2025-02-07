@@ -9,11 +9,11 @@
 
 /**
  * Enumeration that represents the type of a log entry
- * 
+ *
  * That can be an Information entry, a Warning entry or an Error entry
  * 'no_type' is used to represent an un-initialized value
  */
-enum info_type {no_type = -1, info, warning, error};
+enum info_type { no_type = -1, info, warning, error };
 
 /**
  * Enumeration that represents the outcome of a log entry
@@ -21,11 +21,11 @@ enum info_type {no_type = -1, info, warning, error};
  * That can be either Failure or Success
  * 'unset' is used to represent an un-initialized value
  */
-enum outcomes {unset = -1, failure, success};
+enum outcomes { unset = -1, failure, success };
 
 /**
  * Log entry
- * 
+ *
  * Fields:
  *	User -> User associated to the event referenced in the entry
  *	Date -> Date at which the entry was created (approximatly when the event occured)
@@ -34,7 +34,7 @@ enum outcomes {unset = -1, failure, success};
  *	Outcome -> Outcome of the entry
  *	Execution time -> Execution time of the operation (or time before failure)
  */
-typedef struct 
+typedef struct
 {
 	char user[USER_LENGTH];
 	time_t date;
@@ -67,12 +67,5 @@ void printOutcome(enum outcomes out);
  * Every field is set to its default value
  */
 void resetEntry(LogEntry* entry);
-
-/**
- * Reads an entry from the log file and stores it in 'entry'
- *
- * 'filePtr' is a pointer to a file, which we suppose is a log file
- */
-int readEntry(LogEntry* entry, FILE* filePtr);
 
 #endif

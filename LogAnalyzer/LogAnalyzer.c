@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
+#include <float.h>
+#include <limits.h>
 #include "LogEntry.h"
 #include "Utility.h"
-#include <float.h>
-#include <time.h>
-#include <limits.h>
-#include <windows.h>
+#include "MenuPrint.h"
+#include "DLinkedList.h"
 
 /**
  * Updates the counter 'count'
@@ -32,14 +33,14 @@ void executeTrendOutcome(LogEntry* entry, int* count, double* sum, int* sucCntr,
  */
 void executeTrendType(LogEntry* entry, int* count, double* sum, int* sucCntr, int* failCntr, int* infoCntr, int* warningCntr, int* errCntr);
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
 	// Set working directory to the folder where the executable is
 	setWorkingDirToExecutable();
 	char cd[_MAX_PATH];
 	GetCurrentDirectoryA(_MAX_PATH, cd); // Save current directory to print it in the menu
 
-	/* Log file name can initially be passed as a command line argument 
+	/* Log file name can initially be passed as a command line argument
 	 * and subsequentially during execution
 	 */
 	char relativeFilePath[_MAX_PATH];
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]) {
 		strncpy_s(relativeFilePath, _MAX_PATH, argv[1], strlen(argv[1]));
 		relativeFilePath[strlen(relativeFilePath)] = '\0';
 		fopen_s(&logFile, relativeFilePath, "r");
-	} 
+	}
 
 	/* * * * * * * * * * * * * * * * * * * TEMP VARIABLES* * * * * * * * * * * * * * * * * * */
 
@@ -62,13 +63,15 @@ int main(int argc, char *argv[]) {
 
 	/* * * * * * * * * * * * * * * * * * * FILTERS * * * * * * * * * * * * * * * * * * * * * */
 
-	char userFilter[USER_LENGTH]; // We look for entries that have the same user as this filter
+	DLinkedList* userFilters = NULL; // We look for entries that have the same user contained in this filter
+	char userFilter[USER_LENGTH]; // Temporary buffer to hold a user read from stdin
 	nullString(userFilter, USER_LENGTH); // Empty buffer to be sure
 
 	time_t startingDatet = (time_t)(-1); // We look for entries created after this date (inclusive)
 	time_t endingDatet = (time_t)(-1); // We look for entries create before this date (inclusive)
 
-	char operationFilter[OPERATION_LENGTH]; // We look for entries that have the same value (operation) as this filter
+	DLinkedList* operationFilters = NULL; // We look for entries that have the same value (operation) contained in this filter
+	char operationFilter[OPERATION_LENGTH]; // Temporary buffer to hold an operation read from stdin
 	nullString(operationFilter, OPERATION_LENGTH); // Empty buffer to be sure
 
 	enum info_type typeFilter = no_type; // We look for entries with the same type (Info/Warning/Error)
@@ -115,12 +118,12 @@ int main(int argc, char *argv[]) {
 		 */
 		switch (choice) {
 
-		/* Select (another) log file
-		 * Either open a new file or keep the current one
-		 */
+			/* Select (another) log file
+			 * Either open a new file or keep the current one
+			 */
 		case 'f':
 		case 'F':
-				
+
 			// Reset extra message string, present menu
 			nullString(extraMsg, 1024);
 			printf("Insert file path: " BOLD CYAN);
@@ -129,23 +132,23 @@ int main(int argc, char *argv[]) {
 
 			// If the 'new' log file can't be opened
 			if (fopen_s(&tmp, tmpStr, "r") != 0) {
-					
+
 				// If the 'current' log file is not opened
 				if (logFile == NULL) {
 					sprintf_s(extraMsg, 1024, RED "Could not open file '%s'" RESET, tmpStr);
-				} 
+				}
 
 				// If the 'current' log file is present (has already been opened)
 				else {
 					sprintf_s(extraMsg, 1024, RED "Could not open new file, old is still open" RESET);
-				} 
+				}
 			}
 
 			// If the 'new' log file has be opened
 			else {
 
 				// Close the 'current' log file if it has been opened
-				if(logFile != NULL) 
+				if (logFile != NULL)
 					fclose(logFile);
 
 				// Replace the 'current' file with the 'new' one
@@ -157,9 +160,9 @@ int main(int argc, char *argv[]) {
 			}
 			break;
 
-		/* Open settings menu
-		 * Manage filters, choose statistic or start analysis
-		 */
+			/* Open settings menu
+			 * Manage filters, choose statistic or start analysis
+			 */
 		case 's':
 		case 'S':
 
@@ -175,7 +178,7 @@ int main(int argc, char *argv[]) {
 				do {
 
 					// Present menu and read user input
-					logAnalysisMenu(as, userFilter, startingDatet, endingDatet, operationFilter, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg, analysisOutcome);
+					logAnalysisMenu(as, userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg, analysisOutcome);
 					printf(BOLD CYAN);
 					choice = getSingleChar();
 					printf(RESET);
@@ -207,7 +210,7 @@ int main(int argc, char *argv[]) {
 						while (done == 0) {
 
 							// Present menu and read user input
-							filterAddMenu(userFilter, startingDatet, endingDatet, operationFilter, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
+							filterAddMenu(userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
 							printf(BOLD CYAN);
 							choice = getSingleChar();
 							printf(RESET);
@@ -232,10 +235,13 @@ int main(int argc, char *argv[]) {
 							case 'U':
 
 								// Acquire user
-								printf("Digita utente: " BLUE CYAN);
+								printf("Type user: " BLUE CYAN);
 								scanf_s("%s", userFilter, USER_LENGTH);
-								printf(RESET);
 								cleanInputBuffer();
+
+								// Add filter to the list only if it wasn't already added, we are treating this list like a set
+								if(!contains(userFilters, userFilter)) insertTail(&userFilters, userFilter);
+								printf(RESET);
 								done = 1;
 								break;
 
@@ -290,10 +296,13 @@ int main(int argc, char *argv[]) {
 							case 'P':
 
 								// Acquire operation
-								printf("Digita operazione: " BLUE CYAN);
+								printf("Type operation: " BLUE CYAN);
 								scanf_s("%s", operationFilter, OPERATION_LENGTH);
-								printf(RESET);
 								cleanInputBuffer();
+
+								// Add filter to the list only if it wasn't already added, we are treating this list like a set
+								if (!contains(operationFilters, operationFilter)) insertTail(&operationFilters, operationFilter);
+								printf(RESET);
 								done = 1;
 								break;
 
@@ -480,7 +489,7 @@ int main(int argc, char *argv[]) {
 						while (done == 0) {
 
 							// Present menu and read user input
-							filterRemoveMenu(userFilter, startingDatet, endingDatet, operationFilter, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
+							filterRemoveMenu(userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
 							printf(BOLD CYAN);
 							choice = getSingleChar();
 							printf(RESET);
@@ -503,7 +512,33 @@ int main(int argc, char *argv[]) {
 								// Reset user
 							case 'u':
 							case 'U':
-								nullString(userFilter, USER_LENGTH);
+
+								// Show only if there is at least one user in the filter
+								if (userFilters != NULL) {
+
+									// Show only if there are more filters
+									if (size(userFilters) > 0) {
+
+										// Show current user filters
+										char* bf = listToString(userFilters, 0);
+										printf("Current user filter: " MAGENTA "%s\n" RESET, bf);
+										free(bf);
+
+										// Ask which one to delete
+										printf("\nType which user to delete: " BOLD CYAN);
+										scanf_s("%s", userFilter, USER_LENGTH);
+										cleanInputBuffer();
+										printf(RESET);
+										removeAt(&userFilters, contains(userFilters, userFilter) - 1);
+										nullString(userFilter, USER_LENGTH);
+									}
+
+									// Only one element
+									else {
+										removeHead(&userFilters);
+									}
+								}
+
 								done = 1;
 								break;
 
@@ -524,7 +559,32 @@ int main(int argc, char *argv[]) {
 								// Reset operation
 							case 'p':
 							case 'P':
-								nullString(operationFilter, OPERATION_LENGTH);
+
+								// Show only if there is at least one operation in the filter
+								if (operationFilters != NULL) {
+
+									if (size(operationFilters) > 0) {
+
+										// Show current operation filters
+										char* bf = listToString(operationFilters, 0);
+										printf("Current operation filter: " MAGENTA "%s\n" RESET, bf);
+										free(bf);
+
+										// Ask which operation to delete
+										printf("\nType which user to delete: " BOLD CYAN);
+										scanf_s("%s", operationFilter, OPERATION_LENGTH);
+										cleanInputBuffer();
+										printf(RESET);
+										removeAt(&operationFilters, contains(operationFilters, operationFilter) - 1);
+										nullString(operationFilter, USER_LENGTH);
+
+									}
+
+									// Only 1 element
+									else {
+										removeHead(&operationFilters);
+									}
+								}
 								done = 1;
 								break;
 
@@ -678,7 +738,7 @@ int main(int argc, char *argv[]) {
 
 						// Reset every counter
 						entryCount = 0;
-						filteredEntryCount;
+						filteredEntryCount = 0;
 						avgExTime = 0.0;
 						infoCounter = 0;
 						warningCounter = 0;
@@ -691,16 +751,36 @@ int main(int argc, char *argv[]) {
 						while ((r = readEntry(&logEn, logFile)) == 0) {
 
 							// Check wheter the values match with the filters
-							if ((userFilter[0] != '\0') && strncmp(logEn.user, userFilter, USER_LENGTH)) {
+							if (userFilters != NULL) {
+
+								// Since we always start with matches = 1, suppose that it doesn't and manually set it to true if does
 								matches = 0;
+								int maxit = size(userFilters);
+								for (int i = 0; i < maxit; i++) {
+									if (contains(userFilters, logEn.user)) {
+										matches = 1;
+										break;
+									}
+								}
+							}
+
+							// Same thing as with user, suppose that it doesn't match and manually set it to true if it does, only if it still matches (user filter could have set it to false)
+							if (operationFilters != NULL) {
+								if (matches) {
+									matches = 0;
+									int maxit = size(operationFilters);
+									for (int i = 0; i < maxit; i++) {
+										if (contains(operationFilters, logEn.operation)) {
+											matches = 1;
+											break;
+										}
+									}
+								}
 							}
 							if ((startingDatet != (time_t)(-1)) && (difftime(logEn.date, startingDatet) < 0)) {
 								matches = 0;
 							}
 							if ((endingDatet != (time_t)(-1)) && (difftime(logEn.date, endingDatet) > 0)) {
-								matches = 0;
-							}
-							if ((operationFilter[0] != '\0') && (strncmp(logEn.user, userFilter, USER_LENGTH))) {
 								matches = 0;
 							}
 							if ((typeFilter != no_type) && (logEn.type != typeFilter)) {
@@ -730,6 +810,7 @@ int main(int argc, char *argv[]) {
 						else {
 							analysisOutcome = success;
 							sprintf_s(extraMsg, 1024, GREEN "Results avaiable at 'Results' tab" RESET);
+							fseek(logFile, 0, SEEK_SET);
 						}
 						break;
 
@@ -744,32 +825,37 @@ int main(int argc, char *argv[]) {
 						if (analysisOutcome == success) {
 
 							// Print the number of all entries analyzed
-							printf("READ: %d\n", entryCount);
+							printf("Number of entries analyzed: {" CYAN "%d" RESET "}\n", entryCount);
 
 							// Print the statistic we are interested in
 							switch (as) {
 
 								// Number of entries consistent with the filters
 							case countEntries:
-								printf("under filters: %d\n", filteredEntryCount);
+								printf("Of which [" MAGENTA "%d" RESET "] match the selected filters\n", filteredEntryCount);
 								break;
 
 								// Average execution time
 							case avgEx:
-								printf("AVG EX TIME %.4lf", (avgExTime / (double)filteredEntryCount));
+								if (logEn.outcome == success) {
+									printf("Average execution time [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+								}
+								else {
+									printf("Average time before crash [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+								}
 								break;
 
 								// Trend of entry type
 							case typTrnd:
-								printf("Success: %d\n", successCounter);
-								printf("Failure: %d\n", failureCounter);
+								printf("Number of entries flagged as " GREEN "Success" RESET " [" MAGENTA "%d" RESET "\n", successCounter);
+								printf("Number of entries flagged as " RED "Failure" RESET " [" MAGENTA "%d" RESET "\n", failureCounter);
 								break;
 
 								// Trend of entry outcome
 							case outTrnd:
-								printf("info: %d\n", infoCounter);
-								printf("warning: %d\n", warningCounter);
-								printf("error: %d\n", errorCounter);
+								printf("Number of entries flagged as " BLUE "Information" RESET " [" MAGENTA "%d" RESET "\n", infoCounter);
+								printf("Number of entries flagged as " YELLOW "Warning" RESET " [" MAGENTA "%d" RESET "\n", warningCounter);
+								printf("Number of entries flagged as " RED "Error" RESET " [" MAGENTA "%d" RESET "\n", errorCounter);
 								break;
 							}
 
@@ -803,35 +889,39 @@ int main(int argc, char *argv[]) {
 								if (fopen_s(&results, resFName, "w") == 0) {
 
 									// Save the number of all entries analyzed
-									fprintf(results, "READ: %d\n", entryCount);
+									printf("Number of entries analyzed: {%d}\n", entryCount);
 
 									// Save the statistic we are interested in
 									switch (as) {
 
 										// Number of entries consistent with the filters
 									case countEntries:
-										fprintf(results, "under filters: %d\n", filteredEntryCount);
+										printf("Of which [%d] match the selected filters\n", filteredEntryCount);
 										break;
 
 										// Average execution time
 									case avgEx:
-										fprintf(results, "AVG EX TIME %.4lf", (avgExTime / (double)filteredEntryCount));
+										if (logEn.outcome == success) {
+											printf("Average execution time [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+										}
+										else {
+											printf("Average time before crash [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+										}
 										break;
 
 										// Trend of entry type
 									case typTrnd:
-										fprintf(results, "Success: %d\n", successCounter);
-										fprintf(results, "Failure: %d\n", failureCounter);
+										printf("Number of entries flagged as Success [%d\n", successCounter);
+										printf("Number of entries flagged as Failure [%d\n", failureCounter);
 										break;
 
 										// Trend of entry outcome
 									case outTrnd:
-										fprintf(results, "info: %d\n", infoCounter);
-										fprintf(results, "warning: %d\n", warningCounter);
-										fprintf(results, "error: %d\n", errorCounter);
+										printf("Number of entries flagged as Information [%d\n", infoCounter);
+										printf("Number of entries flagged as Warning [%d\n", warningCounter);
+										printf("Number of entries flagged as Error [%d\n", errorCounter);
 										break;
 									}
-
 									printf(GREEN "Results saved in 'LogAnalizer\\%s'\n" RESET, resFName);
 								}
 
@@ -885,10 +975,10 @@ int main(int argc, char *argv[]) {
 			}
 			break;
 
-		/* Closes the application
-		 * Resets the strings and, just that, it exits
-		 * the while loop next iteration
-		 */
+			/* Closes the application
+			 * Resets the strings and, just that, it exits
+			 * the while loop next iteration
+			 */
 		case 'x':
 		case 'X':
 
@@ -897,9 +987,9 @@ int main(int argc, char *argv[]) {
 			printf("Closing...");
 			break;
 
-		/* Wrong input
-		 * Initialize extra message to show that the input wasn't correct
-		 */
+			/* Wrong input
+			 * Initialize extra message to show that the input wasn't correct
+			 */
 		default:
 
 			// Strings initialization for next iteration
@@ -908,9 +998,9 @@ int main(int argc, char *argv[]) {
 		}
 
 	}
-	
+
 	// Close file if it was opened
-	if(logFile != NULL) fclose(logFile);
+	if (logFile != NULL) fclose(logFile);
 	return 0;
 }
 

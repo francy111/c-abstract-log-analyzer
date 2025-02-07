@@ -127,17 +127,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="debug.c" />
-    <ClCompile Include="LogAnalyzer.c" />
-    <ClCompile Include="LogEntry.c" />
-    <ClCompile Include="Utility.c" />
+    <Text Include="test_data.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DLinkedList.h" />
     <ClInclude Include="LogEntry.h" />
+    <ClInclude Include="MenuPrint.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="test_data.txt" />
+    <ClCompile Include="DLinkedList.c" />
+    <ClCompile Include="LogAnalyzer.c" />
+    <ClCompile Include="LogEntry.c" />
+    <ClCompile Include="MenuPrint.c" />
+    <ClCompile Include="Utility.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

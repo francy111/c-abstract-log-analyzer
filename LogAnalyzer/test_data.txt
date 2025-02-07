@@ -1,1 +1,6 @@
-utente@10.03.2003-00:00:00-operation-Information-Success-50.01
+alice@04/02/2025-14:32:10-read-Information-Success-0.45
+bob@04/02/2025-14:35:22-write-Warning-Failure-1.32
+charlie@03/02/2025-18:10:55-delete-Error-Failure-2.75
+david@02/02/2025-09:15:48-execute-Information-Success-0.98
+eve@04/02/2025-20:47:33-modify-Warning-Success-1.12
+frank@01/02/2025-23:59:59-create-Error-Failure-3.21
