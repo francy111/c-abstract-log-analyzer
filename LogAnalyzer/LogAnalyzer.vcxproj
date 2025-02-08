@@ -137,6 +137,7 @@
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="debug.c" />
     <ClCompile Include="DLinkedList.c" />
     <ClCompile Include="EntryFilter.c" />
     <ClCompile Include="LogAnalyzer.c" />

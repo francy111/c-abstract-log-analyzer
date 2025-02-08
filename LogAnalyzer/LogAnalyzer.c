@@ -109,6 +109,8 @@ int main(int argc, char* argv[]) {
 	char choice = '\0'; // Character used to move between menus (input from the user)
 	void (*operation)(LogEntry*, int*, double*, int*, int*, int*, int*, int*) = executeEntryCount; // Emulate a dinamic call to the various operations based on choses statistic
 
+	int startingDSet = 0, endingDSet = 0; // Flag to check if the starting/ending dates (only date) have been specified
+
 	char extraMsg[1024]; // Buffer that holds a message that is shown during the next iteration
 	nullString(extraMsg, 1024);
 
@@ -228,7 +230,7 @@ int main(int argc, char* argv[]) {
 						while (done == 0) {
 
 							// Present menu and read user input
-							filterAddMenu(f, extraMsg);
+							filterAddMenu(f, startingDSet, endingDSet, extraMsg);
 							printf(BOLD CYAN);
 							choice = getSingleChar();
 							printf(RESET);
@@ -267,20 +269,52 @@ int main(int argc, char* argv[]) {
 							case 'd':
 							case 'D':
 
-								// Acquire starting date 
-								getDateTime(&st);
-								f.startingDate = mktime(&st);
+								// Acquire date if not set
+								if (!startingDSet) {
 
-								// Set error message if the date was invalid
-								if (f.startingDate == (time_t)(-1)) {
-									sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
+									// Acquire starting date 
+									getDate(&st);
+									f.startingDate = mktime(&st);
+
+									// Set error message if the date was invalid
+									if (f.startingDate == (time_t)(-1)) {
+										sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
+									}
+									else {
+
+										// If it is valid and an ending date was set, check if they are coherent
+										if ((f.endingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
+											sprintf_s(extraMsg, 1024, RED "Starting date must be before ending date" RESET);
+											f.startingDate = (time_t)(-1);
+										}
+
+										// If the date is all valid, keep it and flag the date as set
+										else {
+											startingDSet = 1;
+										}
+									}
 								}
-								else {
 
-									// If it is valid and an ending date was set, check if they are coherent
-									if ((f.endingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
-										sprintf_s(extraMsg, 1024, RED "Starting date must be before ending date" RESET);
-										f.startingDate = (time_t)(-1);
+								// Specify time
+								else {
+									getTime(&st);
+									time_t newSDate = mktime(&st);
+
+									// Set error message if the date was invalid
+									if (newSDate == (time_t)(-1)) {
+										sprintf_s(extraMsg, 1024, RED "Please enter a valid time" RESET);
+									}
+									else {
+
+										// If it is valid and an ending date was set, check if they are coherent
+										if ((f.endingDate != (time_t)(-1)) && difftime(f.endingDate, newSDate) < 0) {
+											sprintf_s(extraMsg, 1024, RED "Starting date must be before ending date" RESET);
+										}
+
+										// If it is valid, overwrite date with date and time
+										else {
+											f.startingDate = newSDate;
+										}
 									}
 								}
 								done = 1;
@@ -290,20 +324,52 @@ int main(int argc, char* argv[]) {
 							case 't':
 							case 'T':
 
-								// Acquire ending date 
-								getDateTime(&et);
-								f.endingDate = mktime(&et);
+								// Acquire date if not set
+								if (!endingDSet) {
 
-								// Set error message if the date was invalid
-								if (f.endingDate == (time_t)(-1)) {
-									sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
+									// Acquire ending date 
+									getDate(&et);
+									f.endingDate = mktime(&et);
+
+									// Set error message if the date was invalid
+									if (f.endingDate == (time_t)(-1)) {
+										sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
+									}
+									else {
+
+										// If it is valid and a starting date was set, check if they are coherent
+										if ((f.startingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
+											sprintf_s(extraMsg, 1024, RED "Ending date must be after starting date" RESET);
+											f.endingDate = (time_t)(-1);
+										}
+
+										// The date is valid, we flag it
+										else {
+											endingDSet = 1;
+										}
+									}
 								}
-								else {
 
-									// If it is valid and a starting date was set, check if they are coherent
-									if ((f.startingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
-										sprintf_s(extraMsg, 1024, RED "Ending date must be after starting date" RESET);
-										f.endingDate = (time_t)(-1);
+								// Specify time
+								else {
+									getTime(&et);
+									time_t newEDate = mktime(&et);
+
+									// Set error message if the date was invalid
+									if (newEDate == (time_t)(-1)) {
+										sprintf_s(extraMsg, 1024, RED "Please enter a valid time" RESET);
+									}
+									else {
+
+										// If it is valid and an ending date was set, check if they are coherent
+										if ((f.endingDate != (time_t)(-1)) && difftime(newEDate, f.startingDate) < 0) {
+											sprintf_s(extraMsg, 1024, RED "Starting date must be before ending date" RESET);
+										}
+
+										// If it is valid, overwrite date with date and time
+										else {
+											f.startingDate = newEDate;
+										}
 									}
 								}
 								done = 1;
@@ -565,6 +631,7 @@ int main(int argc, char* argv[]) {
 							case 'D':
 
 								f.startingDate = (time_t)(-1);
+								startingDSet = 0;
 								done = 1;
 								break;
 
@@ -573,6 +640,7 @@ int main(int argc, char* argv[]) {
 							case 'T':
 
 								f.endingDate = (time_t)(-1);
+								endingDSet = 0;
 								done = 1;
 								break;
 
@@ -1057,6 +1125,7 @@ int main(int argc, char* argv[]) {
 
 	// Close file if it was opened
 	if (logFile != NULL) fclose(logFile);
+	resetEntryFilter(&f);
 	return 0;
 }
 

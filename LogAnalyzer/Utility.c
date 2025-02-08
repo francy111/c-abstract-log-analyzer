@@ -144,6 +144,7 @@ void cleanInputBuffer(void) {
 	while ((c = getchar()) != '\n' && c != EOF) {
 		// Deletes all characters until a newline or EOF
 	}
+	return;
 }
 
 /**
@@ -155,6 +156,7 @@ void cleanInputBuffer(void) {
  * Returns the number of read characters
  */
 long getOptionalInput(char* string, size_t size) {
+
 	if (fgets(string, (int)size, stdin) != NULL) {
 		size_t len = strlen(string);
 
@@ -197,20 +199,22 @@ char getSingleChar(void) {
  * 'dd.mm.yyyy' (hh:mm:ss) format in BOLD CYAN
  */
 void printDateTime(struct tm dt) {
+
 	// Adjusting month and yeah for printing
 	printf("%d.%d.%d (%d:%d:%d)", dt.tm_mday, dt.tm_mon + 1, dt.tm_year + 1900, dt.tm_hour, dt.tm_min, dt.tm_sec);
+	return;
 }
 
 
 /**
- * Acquires the components of a date_time structure from
+ * Acquires the date component of a date_time structure from
  * the standard input (stdin) and stores them in the
  * structure pointed by 'dateTime'
  *
  * The date is acquired first using the 'dd/mm/yyyy' format
- * The time is acquired right after using the 'hh:mm:ss' format
  */
-void getDateTime(struct tm* dateTime) {
+void getDate(struct tm* dateTime) {
+
 	int done = 0;
 	while (done == 0) {
 		printf("Enter date in dd/mm/yyyy format: " BOLD CYAN);
@@ -227,7 +231,25 @@ void getDateTime(struct tm* dateTime) {
 	dateTime->tm_mon -= 1; // Adjusting since months are stored from 0 to 11
 	dateTime->tm_year -= 1900; // Adjusting since the year should be the number of years since 1900
 
-	done = 0;
+	// If we are acquiring
+	if (mktime(dateTime) == (time_t)(-1)) {
+		dateTime->tm_hour = 0;
+		dateTime->tm_min = 0;
+		dateTime->tm_sec = 0;
+	}
+	return;
+}
+
+/**
+ * Acquires the time component of a date_time structure from
+ * the standard input (stdin) and stores them in the
+ * structure pointed by 'dateTime'
+ *
+ * The time is acquired using the 'hh:mm:ss' format
+ */
+void getTime(struct tm* dateTime) {
+
+	int done = 0;
 	while (done == 0) {
 		printf("Enter time in hh:mm:ss format: " BOLD CYAN);
 		if (scanf_s("%d:%d:%d", &dateTime->tm_hour, &dateTime->tm_min, &dateTime->tm_sec) != 3
@@ -240,6 +262,7 @@ void getDateTime(struct tm* dateTime) {
 		printf(RESET);
 		cleanInputBuffer();
 	}
+	return;
 }
 
 /**
@@ -251,4 +274,5 @@ void getDateTime(struct tm* dateTime) {
 void nullString(char str[], size_t size) {
 	for (int i = 0; i < size; i++)
 		str[i] = '\0';
+	return;
 }

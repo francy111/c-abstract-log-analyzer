@@ -69,7 +69,7 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterAddMenu(EntryFilter f, char* extraMsg);
+void filterAddMenu(EntryFilter f, int startingDateFlag, int endingDateFlag, char* extraMsg);
 
 /**
  * Prints a menu to remove a filter

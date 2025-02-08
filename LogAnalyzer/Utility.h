@@ -111,14 +111,22 @@ char getSingleChar(void);
 void printDateTime(struct tm dt);
 
 /**
- * Acquires the components of a date_time structure from
+ * Acquires the date component of a date_time structure from
  * the standard input (stdin) and stores them in the
  * structure pointed by 'dateTime'
  *
- * The date is acquired first using the 'dd/mm/yyyy' format
- * The time is acquired right after using the 'hh:mm:ss' format
+ * The date is acquired using the 'dd/mm/yyyy' format
  */
-void getDateTime(struct tm* dateTime);
+void getDate(struct tm* dateTime);
+
+/**
+ * Acquires the time component of a date_time structure from
+ * the standard input (stdin) and stores them in the
+ * structure pointed by 'dateTime'
+ *
+ * The time is acquired using the 'hh:mm:ss' format
+ */
+void getTime(struct tm* dateTime);
 
 /**
  * Empties a maximum of 'size' characters

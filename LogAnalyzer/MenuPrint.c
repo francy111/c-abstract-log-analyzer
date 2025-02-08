@@ -256,18 +256,37 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterAddMenu(EntryFilter f, char* extraMsg) {
+void filterAddMenu(EntryFilter f, int startingDateFlag, int endingDateFlag, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable filters to add # # # # #\n");
 
 	// Prints filters only when not already added
 	printf("[" BOLD CYAN "u" RESET "] Filter for user\n"); // Always able to add a user
-	if (f.startingDate == (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] 'From' date\n");
-	if (f.endingDate == (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] 'Until' date\n");
+
+	if (f.startingDate == (time_t)(-1)) { 
+		printf("[" BOLD CYAN "d" RESET "] 'From' date\n"); 
+	}
+	else {
+		if(startingDateFlag)
+			printf("[" BOLD CYAN "d" RESET "] Specify 'from date' time\n");
+	}
+
+	if (f.endingDate == (time_t)(-1)) {
+		printf("[" BOLD CYAN "t" RESET "] 'To' date\n");
+	}
+	else {
+		if (endingDateFlag)
+			printf("[" BOLD CYAN "t" RESET "] Specify 'to date' time\n");
+	}
+
 	printf("[" BOLD CYAN "p" RESET "] Filter for operation\n"); // Always able to add an operation
+
 	if (f.typeFilter == no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
+
 	if (f.outcomeFilter == unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
+
 	if (f.minExecutionTime == 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
+
 	if (f.maxExecutionTime == DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
@@ -297,12 +316,19 @@ void filterRemoveMenu(EntryFilter f, char* extraMsg) {
 
 	// Prints filters only when are already added
 	if (f.userFilters != NULL) printf("[" BOLD CYAN "u" RESET "] Filter for user\n");
+
 	if (f.startingDate != (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] \'From\' date\n");
+
 	if (f.endingDate != (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] \'Until\' \n");
+
 	if (f.operationFilters != NULL) printf("[" BOLD CYAN "p" RESET "] Filter for operation\n");
+
 	if (f.typeFilter != no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
+
 	if (f.outcomeFilter != unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
+
 	if (f.minExecutionTime != 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
+
 	if (f.maxExecutionTime != DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
