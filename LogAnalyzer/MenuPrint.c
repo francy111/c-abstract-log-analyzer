@@ -138,6 +138,7 @@ void mainMenu(char* cd, char* filePath, char* extraMsg) {
  * Provides the following options:
  *  (+) Add a filter for the later analysis
  *  (-) Removes a previously added filter
+ *  (l) Switch between [AND - OR] logical operator for filters
  *  (m) Changes the statistic to be studied
  *  (s) Starts the analysis
  *  (x) Exits to the main menu
@@ -145,11 +146,14 @@ void mainMenu(char* cd, char* filePath, char* extraMsg) {
  * Also prints the currently selected statistic and filters and an optional extra messsage
  * (Usually used as a feedback for the previous iteration)
  */
-void logAnalysisMenu(enum analysis_operation operation, DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, enum outcomes analysisOutcome) {
+void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryFilter f, char* extraMsg, enum outcomes analysisOutcome) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Settings # # # # #\n");
 	printf("[" BOLD CYAN "+" RESET "] Add filter\n");
 	printf("[" BOLD CYAN "-" RESET "] Remove filter\n");
+	printf("[" BOLD CYAN "l" RESET "] Switch to ");
+	if (filterOrFlag) printf("all filters must match\n");
+	else printf("just one filter needs to match\n");
 	printf("[" BOLD CYAN "m" RESET "] Select statistic\n");
 	printf("[" BOLD GREEN "s" RESET "] Start analysis\n");
 	if (analysisOutcome == success) printf("[" BOLD MAGENTA "r" RESET "] Show analysis results\n");
@@ -175,56 +179,62 @@ void logAnalysisMenu(enum analysis_operation operation, DLinkedList* userFilters
 	// Prints the currently selected filters, formatting correctly if none are applied
 	int atLeastOne = 0;
 	printf("Current filters: [");
-	if (userFilters != NULL) {
+	if (f.userFilters != NULL) {
 		printf("\n user in " BOLD MAGENTA);
-		char* bff = listToString(userFilters, HEAD_TO_TAIL);
+		char* bff = listToString(f.userFilters, HEAD_TO_TAIL);
 		printf("%s" RESET, bff);
 		free(bff);
 		atLeastOne = 1;
 	}
-	if (startingDatet != (time_t)(-1)) {
+	if (f.startingDate != (time_t)(-1)) {
 		printf("\n  from " BOLD MAGENTA);
 		struct tm dt;
-		localtime_s(&dt, &startingDatet);
+		localtime_s(&dt, &(f.startingDate));
 		printDateTime(dt);
 		printf(RESET);
 		atLeastOne = 1;
 	}
-	if (endingDatet != (time_t)(-1)) {
+	if (f.endingDate != (time_t)(-1)) {
 		printf("\n  until " BOLD MAGENTA);
 		struct tm dt;
-		localtime_s(&dt, &endingDatet);
+		localtime_s(&dt, &(f.endingDate));
 		printDateTime(dt);
 		printf(RESET);
 		atLeastOne = 1;
 	}
-	if (operationFilters != NULL) {
+	if (f.operationFilters != NULL) {
 		printf("\n operation in " BOLD MAGENTA);
-		char* bff = listToString(operationFilters, HEAD_TO_TAIL);
+		char* bff = listToString(f.operationFilters, HEAD_TO_TAIL);
 		printf("%s" RESET, bff);
 		free(bff);
 		atLeastOne = 1;
 	}
-	if (typeFilter != no_type) {
+	if (f.typeFilter != no_type) {
 		printf("\n  ");
-		printInfoType(typeFilter);
+		printInfoType(f.typeFilter);
 		atLeastOne = 1;
 	}
-	if (outcomeFilter != unset) {
+	if (f.outcomeFilter != unset) {
 		printf("\n  ");
-		printOutcome(outcomeFilter);
+		printOutcome(f.outcomeFilter);
 		atLeastOne = 1;
 	}
-	if (minExTime != 0.0) {
-		printf("\n  minimum execution time = " BOLD MAGENTA "%.3f" RESET, minExTime);
+	if (f.minExecutionTime != 0.0) {
+		printf("\n  minimum execution time = " BOLD MAGENTA "%.3f" RESET, f.minExecutionTime);
 		atLeastOne = 1;
 	}
-	if (maxExTime != DBL_MAX) {
-		printf("\n  maximum execution time = " BOLD MAGENTA "%.3f" RESET, maxExTime);
+	if (f.maxExecutionTime != DBL_MAX) {
+		printf("\n  maximum execution time = " BOLD MAGENTA "%.3f" RESET, f.maxExecutionTime);
 		atLeastOne = 1;
 	}
 	if (atLeastOne) printf("\n");
 	printf("]\n");
+
+	printf("Current operator: [" );
+	if (filterOrFlag) printf(BLUE "OR");
+	else printf(GREEN "AND");
+	printf(RESET "]\n");
+
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Exit settings\n\n");
@@ -246,19 +256,19 @@ void logAnalysisMenu(enum analysis_operation operation, DLinkedList* userFilters
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterAddMenu(DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg) {
+void filterAddMenu(EntryFilter f, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable filters to add # # # # #\n");
 
 	// Prints filters only when not already added
 	printf("[" BOLD CYAN "u" RESET "] Filter for user\n"); // Always able to add a user
-	if (startingDatet == (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] 'From' date\n");
-	if (endingDatet == (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] 'Until' date\n");
+	if (f.startingDate == (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] 'From' date\n");
+	if (f.endingDate == (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] 'Until' date\n");
 	printf("[" BOLD CYAN "p" RESET "] Filter for operation\n"); // Always able to add an operation
-	if (typeFilter == no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
-	if (outcomeFilter == unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
-	if (minExTime == 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
-	if (maxExTime == DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
+	if (f.typeFilter == no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
+	if (f.outcomeFilter == unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
+	if (f.minExecutionTime == 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
+	if (f.maxExecutionTime == DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
@@ -281,19 +291,19 @@ void filterAddMenu(DLinkedList* userFilters, time_t startingDatet, time_t ending
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterRemoveMenu(DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg) {
+void filterRemoveMenu(EntryFilter f, char* extraMsg) {
 	printf(CLEAR_SCREEN);
 	printf("# # # # # Avaiable filters for removal # # # # #\n");
 
 	// Prints filters only when are already added
-	if (userFilters != NULL) printf("[" BOLD CYAN "u" RESET "] Filter for user\n");
-	if (startingDatet != (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] \'From\' date\n");
-	if (endingDatet != (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] \'Until\' \n");
-	if (operationFilters != NULL) printf("[" BOLD CYAN "p" RESET "] Filter for operation\n");
-	if (typeFilter != no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
-	if (outcomeFilter != unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
-	if (minExTime != 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
-	if (maxExTime != DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
+	if (f.userFilters != NULL) printf("[" BOLD CYAN "u" RESET "] Filter for user\n");
+	if (f.startingDate != (time_t)(-1)) printf("[" BOLD CYAN "d" RESET "] \'From\' date\n");
+	if (f.endingDate != (time_t)(-1)) printf("[" BOLD CYAN "t" RESET "] \'Until\' \n");
+	if (f.operationFilters != NULL) printf("[" BOLD CYAN "p" RESET "] Filter for operation\n");
+	if (f.typeFilter != no_type) printf("[" BOLD CYAN "i" RESET "] Filter for type\n");
+	if (f.outcomeFilter != unset) printf("[" BOLD CYAN "o" RESET "] Filter for outcome\n");
+	if (f.minExecutionTime != 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
+	if (f.maxExecutionTime != DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 

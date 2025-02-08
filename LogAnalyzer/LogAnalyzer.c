@@ -14,6 +14,7 @@
 #include <limits.h>
 #include "LogEntry.h"
 #include "Utility.h"
+#include "EntryFilter.h"
 #include "MenuPrint.h"
 #include "DLinkedList.h"
 
@@ -71,22 +72,24 @@ int main(int argc, char* argv[]) {
 
 	/* * * * * * * * * * * * * * * * * * * FILTERS * * * * * * * * * * * * * * * * * * * * * */
 
-	DLinkedList* userFilters = NULL; // We look for entries that have the same user contained in this filter
+	EntryFilter f; // Filter struct that holds all filters
+
+	f.userFilters = NULL; // We look for entries that have the same user contained in this filter
 	char userFilter[USER_LENGTH]; // Temporary buffer to hold a user read from stdin
 	nullString(userFilter, USER_LENGTH); // Empty buffer to be sure
 
-	time_t startingDatet = (time_t)(-1); // We look for entries created after this date (inclusive)
-	time_t endingDatet = (time_t)(-1); // We look for entries create before this date (inclusive)
+	f.startingDate = (time_t)(-1); // We look for entries created after this date (inclusive)
+	f.endingDate = (time_t)(-1); // We look for entries create before this date (inclusive)
 
-	DLinkedList* operationFilters = NULL; // We look for entries that have the same value (operation) contained in this filter
+	f.operationFilters = NULL; // We look for entries that have the same value (operation) contained in this filter
 	char operationFilter[OPERATION_LENGTH]; // Temporary buffer to hold an operation read from stdin
 	nullString(operationFilter, OPERATION_LENGTH); // Empty buffer to be sure
 
-	enum info_type typeFilter = no_type; // We look for entries with the same type (Info/Warning/Error)
-	enum outcomes outcomeFilter = unset; // We look for entries with the same outcome (Failure/Success)
+	f.typeFilter = no_type; // We look for entries with the same type (Info/Warning/Error)
+	f.outcomeFilter = unset; // We look for entries with the same outcome (Failure/Success)
 
-	double minExTime = 0.0; // We look for entries with an execution time greater than this filter (inclusive)
-	double maxExTime = DBL_MAX; // We look for entries with an execution time less than this filter (inclusive)
+	f.minExecutionTime = 0.0; // We look for entries with an execution time greater than this filter (inclusive)
+	f.maxExecutionTime = DBL_MAX; // We look for entries with an execution time less than this filter (inclusive)
 
 	enum analysis_statistic as = countEntries; // Statistic to extract
 
@@ -108,6 +111,13 @@ int main(int argc, char* argv[]) {
 
 	char extraMsg[1024]; // Buffer that holds a message that is shown during the next iteration
 	nullString(extraMsg, 1024);
+
+	/* True means that out of the filters, only 1 needs to be true in order for an entry to match,
+ 	 * on the other hand, 0 means all need to be true for an entry to match
+	 * 
+	 * In other words, 0 (false) means the filters are checked with a locical AND, 1 (anything not 0, true) means the filters are checked with a logical OR
+	 */
+	int globalOrFilters = 0;
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -186,7 +196,7 @@ int main(int argc, char* argv[]) {
 				do {
 
 					// Present menu and read user input
-					logAnalysisMenu(as, userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg, analysisOutcome);
+					logAnalysisMenu(as, globalOrFilters, f, extraMsg, analysisOutcome);
 					printf(BOLD CYAN);
 					choice = getSingleChar();
 					printf(RESET);
@@ -218,7 +228,7 @@ int main(int argc, char* argv[]) {
 						while (done == 0) {
 
 							// Present menu and read user input
-							filterAddMenu(userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
+							filterAddMenu(f, extraMsg);
 							printf(BOLD CYAN);
 							choice = getSingleChar();
 							printf(RESET);
@@ -248,7 +258,7 @@ int main(int argc, char* argv[]) {
 								cleanInputBuffer();
 
 								// Add filter to the list only if it wasn't already added, we are treating this list like a set
-								if(!contains(userFilters, userFilter)) insertTail(&userFilters, userFilter);
+								if(!contains(f.userFilters, userFilter)) insertTail(&(f.userFilters), userFilter);
 								printf(RESET);
 								done = 1;
 								break;
@@ -259,18 +269,18 @@ int main(int argc, char* argv[]) {
 
 								// Acquire starting date 
 								getDateTime(&st);
-								startingDatet = mktime(&st);
+								f.startingDate = mktime(&st);
 
 								// Set error message if the date was invalid
-								if (startingDatet == (time_t)(-1)) {
+								if (f.startingDate == (time_t)(-1)) {
 									sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
 								}
 								else {
 
 									// If it is valid and an ending date was set, check if they are coherent
-									if ((endingDatet != (time_t)(-1)) && difftime(endingDatet, startingDatet) < 0) {
+									if ((f.endingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
 										sprintf_s(extraMsg, 1024, RED "Starting date must be before ending date" RESET);
-										startingDatet = (time_t)(-1);
+										f.startingDate = (time_t)(-1);
 									}
 								}
 								done = 1;
@@ -282,18 +292,18 @@ int main(int argc, char* argv[]) {
 
 								// Acquire ending date 
 								getDateTime(&et);
-								endingDatet = mktime(&et);
+								f.endingDate = mktime(&et);
 
 								// Set error message if the date was invalid
-								if (endingDatet == (time_t)(-1)) {
+								if (f.endingDate == (time_t)(-1)) {
 									sprintf_s(extraMsg, 1024, RED "Please enter a valid date" RESET);
 								}
 								else {
 
 									// If it is valid and a starting date was set, check if they are coherent
-									if ((startingDatet != (time_t)(-1)) && difftime(endingDatet, startingDatet) < 0) {
+									if ((f.startingDate != (time_t)(-1)) && difftime(f.endingDate, f.startingDate) < 0) {
 										sprintf_s(extraMsg, 1024, RED "Ending date must be after starting date" RESET);
-										endingDatet = (time_t)(-1);
+										f.endingDate = (time_t)(-1);
 									}
 								}
 								done = 1;
@@ -309,7 +319,7 @@ int main(int argc, char* argv[]) {
 								cleanInputBuffer();
 
 								// Add filter to the list only if it wasn't already added, we are treating this list like a set
-								if (!contains(operationFilters, operationFilter)) insertTail(&operationFilters, operationFilter);
+								if (!contains(f.operationFilters, operationFilter)) insertTail(&(f.operationFilters), operationFilter);
 								printf(RESET);
 								done = 1;
 								break;
@@ -338,19 +348,19 @@ int main(int argc, char* argv[]) {
 									// Information
 								case 'i':
 								case 'I':
-									typeFilter = info;
+									f.typeFilter = info;
 									break;
 
 									// Warning
 								case 'w':
 								case 'W':
-									typeFilter = warning;
+									f.typeFilter = warning;
 									break;
 
 									// Error
 								case 'e':
 								case 'E':
-									typeFilter = error;
+									f.typeFilter = error;
 									break;
 
 									/* Wrong input
@@ -387,13 +397,13 @@ int main(int argc, char* argv[]) {
 									// Success
 								case 's':
 								case 'S':
-									outcomeFilter = success;
+									f.outcomeFilter = success;
 									break;
 
 									// Failure
 								case 'f':
 								case 'F':
-									outcomeFilter = failure;
+									f.outcomeFilter = failure;
 									break;
 
 									/* Wrong input
@@ -413,20 +423,20 @@ int main(int argc, char* argv[]) {
 
 								// Acquire time
 								printf("Tempo esecuzione minimo: " BLUE CYAN);
-								scanf_s("%lf", &minExTime);
+								scanf_s("%lf", &(f.minExecutionTime));
 								printf(RESET);
 								cleanInputBuffer();
 
 								// Check if it makes sense (at least 0)
-								if (minExTime < 0.0) {
-									minExTime = 0.0;
+								if (f.minExecutionTime < 0.0) {
+									f.minExecutionTime = 0.0;
 									sprintf_s(extraMsg, 1024, RED "Execution time must be at least 0.0s" RESET);
 								}
 								else {
 
 									// Check if it's coherent with maximum execution time, if specified
-									if (minExTime >= maxExTime) {
-										minExTime = 0.0;
+									if (f.minExecutionTime >= f.maxExecutionTime) {
+										f.minExecutionTime = 0.0;
 										sprintf_s(extraMsg, 1024, RED "Minimum execution time must be lower than the maximum" RESET);
 									}
 								}
@@ -438,20 +448,20 @@ int main(int argc, char* argv[]) {
 
 								// Acquire time
 								printf("Tempo esecuzione massimo: " BLUE CYAN);
-								scanf_s("%lf", &maxExTime);
+								scanf_s("%lf", &(f.maxExecutionTime));
 								printf(RESET);
 								cleanInputBuffer();
 
 								// Check if it makes sense (at least 0)
-								if (maxExTime < 0.0) {
-									maxExTime = DBL_MAX;
+								if (f.maxExecutionTime < 0.0) {
+									f.maxExecutionTime = DBL_MAX;
 									sprintf_s(extraMsg, 1024, RED "Execution time must be at least 0.0s" RESET);
 								}
 								else {
 
 									// Check if it's coherent with minimum execution time, if specified
-									if (minExTime >= maxExTime) {
-										maxExTime = DBL_MAX;
+									if (f.minExecutionTime >= f.maxExecutionTime) {
+										f.maxExecutionTime = DBL_MAX;
 										sprintf_s(extraMsg, 1024, RED "Maximum execution time must be greater than the minimum" RESET);
 									}
 								}
@@ -497,7 +507,7 @@ int main(int argc, char* argv[]) {
 						while (done == 0) {
 
 							// Present menu and read user input
-							filterRemoveMenu(userFilters, startingDatet, endingDatet, operationFilters, typeFilter, outcomeFilter, minExTime, maxExTime, extraMsg);
+							filterRemoveMenu(f, extraMsg);
 							printf(BOLD CYAN);
 							choice = getSingleChar();
 							printf(RESET);
@@ -522,13 +532,13 @@ int main(int argc, char* argv[]) {
 							case 'U':
 
 								// Show only if there is at least one user in the filter
-								if (userFilters != NULL) {
+								if (f.userFilters != NULL) {
 
 									// Show only if there are more filters
-									if (size(userFilters) > 0) {
+									if (size(f.userFilters) > 0) {
 
 										// Show current user filters
-										char* bf = listToString(userFilters, 0);
+										char* bf = listToString(f.userFilters, 0);
 										printf("Current user filter: " MAGENTA "%s\n" RESET, bf);
 										free(bf);
 
@@ -537,13 +547,13 @@ int main(int argc, char* argv[]) {
 										scanf_s("%s", userFilter, USER_LENGTH);
 										cleanInputBuffer();
 										printf(RESET);
-										removeAt(&userFilters, contains(userFilters, userFilter) - 1);
+										removeAt(&(f.userFilters), contains(f.userFilters, userFilter) - 1);
 										nullString(userFilter, USER_LENGTH);
 									}
 
 									// Only one element
 									else {
-										removeHead(&userFilters);
+										removeHead(&(f.userFilters));
 									}
 								}
 
@@ -553,14 +563,16 @@ int main(int argc, char* argv[]) {
 								// Reset starting date
 							case 'd':
 							case 'D':
-								startingDatet = (time_t)(-1);
+
+								f.startingDate = (time_t)(-1);
 								done = 1;
 								break;
 
 								// Reset ending date
 							case 't':
 							case 'T':
-								endingDatet = (time_t)(-1);
+
+								f.endingDate = (time_t)(-1);
 								done = 1;
 								break;
 
@@ -569,12 +581,12 @@ int main(int argc, char* argv[]) {
 							case 'P':
 
 								// Show only if there is at least one operation in the filter
-								if (operationFilters != NULL) {
+								if (f.operationFilters != NULL) {
 
-									if (size(operationFilters) > 0) {
+									if (size(f.operationFilters) > 0) {
 
 										// Show current operation filters
-										char* bf = listToString(operationFilters, 0);
+										char* bf = listToString(f.operationFilters, 0);
 										printf("Current operation filter: " MAGENTA "%s\n" RESET, bf);
 										free(bf);
 
@@ -583,14 +595,14 @@ int main(int argc, char* argv[]) {
 										scanf_s("%s", operationFilter, OPERATION_LENGTH);
 										cleanInputBuffer();
 										printf(RESET);
-										removeAt(&operationFilters, contains(operationFilters, operationFilter) - 1);
+										removeAt(&(f.operationFilters), contains(f.operationFilters, operationFilter) - 1);
 										nullString(operationFilter, USER_LENGTH);
 
 									}
 
 									// Only 1 element
 									else {
-										removeHead(&operationFilters);
+										removeHead(&(f.operationFilters));
 									}
 								}
 								done = 1;
@@ -599,26 +611,26 @@ int main(int argc, char* argv[]) {
 								// Reset type
 							case 'i':
 							case 'I':
-								typeFilter = no_type;
+								f.typeFilter = no_type;
 								done = 1;
 								break;
 
 								// Reset outcome
 							case 'o':
 							case 'O':
-								outcomeFilter = unset;
+								f.outcomeFilter = unset;
 								done = 1;
 								break;
 
 								// Reset minimum execution time
 							case '-':
-								minExTime = 0.0;
+								f.minExecutionTime = 0.0;
 								done = 1;
 								break;
 
 								// Reset maximum execution time
 							case '+':
-								maxExTime = DBL_MAX;
+								f.maxExecutionTime = DBL_MAX;
 								done = 1;
 								break;
 
@@ -646,6 +658,18 @@ int main(int argc, char* argv[]) {
 								break;
 							}
 						}
+						break;
+
+						/* Logical operator switch for filters
+						 * Offers the possibility to switch between AND and OR logical operator
+						 * for filters, meaning during the analysis either AND or OR will be used
+						 * to confront the entries with the filters
+						 */
+					case 'l':
+					case 'L':
+
+						// Invert the flag
+						globalOrFilters = 1 - globalOrFilters;
 						break;
 
 						/* Statistic selection
@@ -755,52 +779,76 @@ int main(int argc, char* argv[]) {
 						failureCounter = 0;
 
 						// Read an entry from log file and Store it in the LogEntry struct 'logEn'
-						int r, matches = 1;
+						int r, matches, flag;
 						while ((r = readEntry(&logEn, logFile)) == 0) {
 
-							// Check wheter the values match with the filters
-							if (userFilters != NULL) {
+							// Reset the flag for every entry
+							matches = 1;
 
-								// Since we always start with matches = 1, suppose that it doesn't and manually set it to true if does
-								matches = 0;
-								int maxit = size(userFilters);
-								for (int i = 0; i < maxit; i++) {
-									if (contains(userFilters, logEn.user)) {
-										matches = 1;
-										break;
-									}
-								}
-							}
+							// Check only if at least one filter is applied, otherwise, it's automatically a match
+							if (filterNumber(f) > 0) {
 
-							// Same thing as with user, suppose that it doesn't match and manually set it to true if it does, only if it still matches (user filter could have set it to false)
-							if (operationFilters != NULL) {
-								if (matches) {
-									matches = 0;
-									int maxit = size(operationFilters);
+								// Using AND, we start at 1 and negate it if false, using OR, we start at 0 and negate it if true
+								matches -= globalOrFilters;
+
+								// Check wheter the values match with the filters
+								if (f.userFilters != NULL) {
+
+									// Suppose that it doesn't match and manually set it to true if does
+									flag = 0; 
+									int maxit = size(f.userFilters);
 									for (int i = 0; i < maxit; i++) {
-										if (contains(operationFilters, logEn.operation)) {
-											matches = 1;
+										if (contains(f.userFilters, logEn.user)) {
+											flag = 1;
 											break;
 										}
 									}
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Same thing as with user, suppose that it doesn't match and manually set it to true if it does
+								if (f.operationFilters != NULL) {
+									flag = 0;
+									int maxit = size(f.operationFilters);
+									for (int i = 0; i < maxit; i++) {
+										if (contains(f.operationFilters, logEn.operation)) {
+											flag = 1;
+											break;
+										}
+									}
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Starting date
+								if (f.startingDate != (time_t)(-1)) {
+									flag = (difftime(logEn.date, f.startingDate) >= 0);
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Ending date
+								if (f.endingDate != (time_t)(-1)) {
+									flag = (difftime(logEn.date, f.endingDate) <= 0);
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Entry type
+								if (f.typeFilter != no_type) {
+									flag = (logEn.type == f.typeFilter);
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Outcome 
+								if (f.outcomeFilter != unset) {
+									flag = (logEn.outcome == f.outcomeFilter);
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
+								}
+
+								// Execution time, consider only if it's manually set
+								if ((0 < f.minExecutionTime) || (f.maxExecutionTime < DBL_MAX)) {
+									flag = (f.minExecutionTime <= logEn.executionTime) && (logEn.executionTime <= f.maxExecutionTime);
+									matches = globalOrFilters ? (matches | flag) : (matches & flag);
 								}
 							}
-							if ((startingDatet != (time_t)(-1)) && (difftime(logEn.date, startingDatet) < 0)) {
-								matches = 0;
-							}
-							if ((endingDatet != (time_t)(-1)) && (difftime(logEn.date, endingDatet) > 0)) {
-								matches = 0;
-							}
-							if ((typeFilter != no_type) && (logEn.type != typeFilter)) {
-								matches = 0;
-							}
-							if ((outcomeFilter != unset) && (logEn.outcome != outcomeFilter)) {
-								matches = 0;
-							}
-							if ((logEn.executionTime < minExTime) || (logEn.executionTime > maxExTime)) {
-								matches = 0;
-							}
-
 							// If they do, extract what is needed to extract the chosen statistic
 							if (matches) {
 								operation(&logEn, &filteredEntryCount, &avgExTime, &successCounter, &failureCounter, &infoCounter, &warningCounter, &errorCounter);

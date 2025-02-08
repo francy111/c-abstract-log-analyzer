@@ -12,6 +12,7 @@
 #include "Utility.h"
 #include "LogEntry.h"
 #include "DLinkedList.h"
+#include "EntryFilter.h"
 
 #define MAX_PATH 260
 
@@ -42,6 +43,7 @@ void mainMenu(char* cd, char* filePath, char* extraMsg);
  * Provides the following options:
  *  (+) Add a filter for the later analysis
  *  (-) Removes a previously added filter
+ *  (l) Switch between [AND - OR] logical operator for filters
  *  (m) Changes the statistic to be studied
  *  (s) Starts the analysis
  *  (x) Exits to the main menu
@@ -49,7 +51,7 @@ void mainMenu(char* cd, char* filePath, char* extraMsg);
  * Also prints the currently selected statistic and filters and an optional extra messsage
  * (Usually used as a feedback for the previous iteration)
  */
-void logAnalysisMenu(enum analysis_operation operation, DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg, enum outcomes analysisOutcome);
+void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryFilter f, char* extraMsg, enum outcomes analysisOutcome);
 
 /**
  * Prints a menu to add a filter
@@ -67,7 +69,7 @@ void logAnalysisMenu(enum analysis_operation operation, DLinkedList* userFilters
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterAddMenu(DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
+void filterAddMenu(EntryFilter f, char* extraMsg);
 
 /**
  * Prints a menu to remove a filter
@@ -85,7 +87,7 @@ void filterAddMenu(DLinkedList* userFilters, time_t startingDatet, time_t ending
  * Also prints  an optional extra messsage (Usually used as a feedback for
  * the previous iteration)
  */
-void filterRemoveMenu(DLinkedList* userFilters, time_t startingDatet, time_t endingDatet, DLinkedList* operationFilters, enum info_type typeFilter, enum outcomes outcomeFilter, double minExTime, double maxExTime, char* extraMsg);
+void filterRemoveMenu(EntryFilter f, char* extraMsg);
 
 /**
  * Prints a menu to select a statistic

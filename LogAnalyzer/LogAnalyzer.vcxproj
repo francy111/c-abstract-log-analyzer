@@ -131,12 +131,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DLinkedList.h" />
+    <ClInclude Include="EntryFilter.h" />
     <ClInclude Include="LogEntry.h" />
     <ClInclude Include="MenuPrint.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DLinkedList.c" />
+    <ClCompile Include="EntryFilter.c" />
     <ClCompile Include="LogAnalyzer.c" />
     <ClCompile Include="LogEntry.c" />
     <ClCompile Include="MenuPrint.c" />
