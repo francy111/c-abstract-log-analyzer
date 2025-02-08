@@ -368,7 +368,7 @@ int main(int argc, char* argv[]) {
 
 										// If it is valid, overwrite date with date and time
 										else {
-											f.startingDate = newEDate;
+											f.endingDate = newEDate;
 										}
 									}
 								}

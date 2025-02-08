@@ -216,23 +216,31 @@ void printDateTime(struct tm dt) {
 void getDate(struct tm* dateTime) {
 
 	int done = 0;
+	int day, month, year;
 	while (done == 0) {
 		printf("Enter date in dd/mm/yyyy format: " BOLD CYAN);
-		if (scanf_s("%d/%d/%d", &dateTime->tm_mday, &dateTime->tm_mon, &dateTime->tm_year) != 3
+		if (scanf_s("%d/%d/%d", &day, &month, &year) != 3
 			) {
 			printf(BOLD RED "Invalid format\n");
 		}
 		else {
-			done = 1;
+			if (dateValidity(day, month, year)) {
+				done = 1;
+			}
+			else {
+				printf(BOLD RED "Insert coherent day/month/year values\n");
+			}
 		}
 		printf(RESET);
 		cleanInputBuffer();
 	}
-	dateTime->tm_mon -= 1; // Adjusting since months are stored from 0 to 11
-	dateTime->tm_year -= 1900; // Adjusting since the year should be the number of years since 1900
+	dateTime->tm_mday = day;
+	dateTime->tm_mon = month - 1; // Adjusting since months are stored from 0 to 11
+	dateTime->tm_year = year - 1900; // Adjusting since the year should be the number of years since 1900
 
-	// If we are acquiring
-	if (mktime(dateTime) == (time_t)(-1)) {
+	// If we are acquiring the date for the first time
+	time_t dTCheck = mktime(dateTime);
+	if (dTCheck == (time_t)(-1)) {
 		dateTime->tm_hour = 0;
 		dateTime->tm_min = 0;
 		dateTime->tm_sec = 0;
@@ -250,19 +258,98 @@ void getDate(struct tm* dateTime) {
 void getTime(struct tm* dateTime) {
 
 	int done = 0;
+	int hours, minutes, seconds;
 	while (done == 0) {
 		printf("Enter time in hh:mm:ss format: " BOLD CYAN);
-		if (scanf_s("%d:%d:%d", &dateTime->tm_hour, &dateTime->tm_min, &dateTime->tm_sec) != 3
+		if (scanf_s("%d:%d:%d", &hours, &minutes, &seconds) != 3
 			) {
 			printf(BOLD RED "Invalid format\n");
 		}
 		else {
-			done = 1;
+			if (timeValidity(hours, minutes, seconds)) {
+				done = 1;
+			}
+			else {
+				printf(BOLD RED "Insert coherent hours/minutes/seconds values\n");
+			}
 		}
 		printf(RESET);
 		cleanInputBuffer();
+
+		dateTime->tm_hour = hours;
+		dateTime->tm_min = minutes;
+		dateTime->tm_sec = seconds;
 	}
 	return;
+}
+
+/**
+ * Checks if the given day, month and year values
+ * are correct, that is, the day is in range, depending on the month (we include leap years)
+ * The year can only be greater or equal 1900
+ */
+int dateValidity(int day, int month, int year) {
+
+	int valid = 0;
+
+	// Check the year
+	if (year >= 1900) {
+
+		// Check the month
+		switch (month) {
+
+			// 31 days months
+		case 1:
+		case 3:
+		case 5:
+		case 7:
+		case 8:
+		case 10:
+		case 12:
+
+			if ((1 <= day) && (day <= 31)) {
+				valid = 1;
+			}
+			break;
+
+			// 30 days months
+		case 4:
+		case 6:
+		case 9:
+		case 11:
+
+			if ((1 <= day) && (day <= 30)) {
+				valid = 1;
+			}
+			break;
+
+			// February, either 28 or 29 days months
+		case 2:;
+
+			// If it's a leap year we consider an extra day for february
+			int leapYearExtension = (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) ? 1 : 0;
+			if ((1 <= day) && (day <= 28 + leapYearExtension)) {
+				valid = 1;
+			}
+			break;
+
+			// Keep valid at 0
+		default:
+			break;
+		}
+
+
+	}
+
+	return valid;
+}
+
+/**
+ * Checks if the given hours, minutes and seconds values are correct
+ * that is, hours from 0 to 23, minutes from 0 to 59 and seconds 0 to 59
+ */
+int timeValidity(int hours, int minutes, int seconds) {
+	return (0 <= hours) && (hours <= 23) && (0 <= minutes) && (minutes <= 59) && (0 <= seconds) && (seconds <= 59);
 }
 
 /**

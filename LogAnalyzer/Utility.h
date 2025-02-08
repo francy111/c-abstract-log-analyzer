@@ -129,6 +129,19 @@ void getDate(struct tm* dateTime);
 void getTime(struct tm* dateTime);
 
 /**
+ * Checks if the given day, month and year values
+ * are correct, that is, the day is in range, depending on the month (we include leap years)
+ * The year can only be greater or equal 1900
+ */
+int dateValidity(int day, int month, int year);
+
+/**
+ * Checks if the given hours, minutes and seconds values are correct
+ * that is, hours from 0 to 23, minutes from 0 to 59 and seconds 0 to 59
+ */
+int timeValidity(int hours, int minutes, int seconds);
+
+/**
  * Empties a maximum of 'size' characters
  * in the string stored in 'str'
  *
