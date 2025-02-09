@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "EntryFilter.h"
 
 #define GREEN "\x1b[32m"
 #define YELLOW "\x1b[33m"
@@ -148,5 +149,17 @@ int timeValidity(int hours, int minutes, int seconds);
  * All characters from 0 to size-1 are set to '\0'
  */
 void nullString(char str[], size_t size);
+
+/**
+ * Saves the current configurations (selected file and/or filters)
+ * in the file with path 'filePath'
+ */
+int saveConfig(char* filePath, char* logFile, EntryFilter* filters, int statistic, int analysisLogic);
+
+/**
+ * Loads the configurations (selected file and/or filters) 
+ * from the file with path 'filePath'
+ */
+int loadConfig(char* filePath, char* logFile, EntryFilter* filters, int* statistic, int* analysisLogic);
 
 #endif

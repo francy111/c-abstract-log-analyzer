@@ -130,6 +130,7 @@
     <Text Include="test_data.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cJSON.h" />
     <ClInclude Include="DLinkedList.h" />
     <ClInclude Include="EntryFilter.h" />
     <ClInclude Include="LogEntry.h" />
@@ -137,6 +138,7 @@
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cJSON.c" />
     <ClCompile Include="DLinkedList.c" />
     <ClCompile Include="EntryFilter.c" />
     <ClCompile Include="LogAnalyzer.c" />

@@ -17,6 +17,7 @@
 #include "EntryFilter.h"
 #include "MenuPrint.h"
 #include "DLinkedList.h"
+#include "cJSON.h"
 
 /**
  * Updates the counter 'count'
@@ -109,6 +110,9 @@ int main(int argc, char* argv[]) {
 	char choice = '\0'; // Character used to move between menus (input from the user)
 	void (*operation)(LogEntry*, int*, double*, int*, int*, int*, int*, int*) = executeEntryCount; // Emulate a dinamic call to the various operations based on choses statistic
 
+	char configPath[_MAX_PATH]; // Path for the configuration file, used for loading/saving configs
+	nullString(configPath, _MAX_PATH);
+
 	int startingDSet = 0, endingDSet = 0; // Flag to check if the starting/ending dates (only date) have been specified
 
 	char extraMsg[1024]; // Buffer that holds a message that is shown during the next iteration
@@ -178,6 +182,75 @@ int main(int argc, char* argv[]) {
 				// Show this success message
 				sprintf_s(extraMsg, 1024, GREEN "Opened new file" RESET);
 			}
+			break;
+
+			// Load configuration file, automatically trying to select a file and filters
+		case 'l':
+		case 'L':
+
+			// Get config file location (absolute)
+			printf("\nConfiguration files are typically JSON files\n\n");
+			printf("Type configuration file path: " BOLD CYAN);
+			scanf_s("%s", configPath, _MAX_PATH);
+			printf(RESET);
+			cleanInputBuffer();
+
+			// Try to open JSON config file
+			if (loadConfig(configPath, relativeFilePath, &f, &(int)as, &globalOrFilters) == 0) {
+				if (relativeFilePath != NULL) {
+					fopen_s(&logFile, relativeFilePath, "r");
+					sprintf_s(extraMsg, 1024, GREEN "Configurations successfully loaded" RESET);
+
+					switch (as) {
+					case countEntries:
+						operation = executeEntryCount;
+						break;
+					case avgEx:
+						operation = executeAvgExTime;
+						break;
+					case typTrnd:
+						operation = executeTrendType;
+						break;
+					case outTrnd:
+						operation = executeTrendOutcome;
+						break;
+					}
+				}
+			}
+			else {
+				sprintf_s(extraMsg, 1024, RED "Error during config load" RESET);
+			}
+
+			break;
+
+			// Save configuration file
+		case 'd':
+		case 'D':
+
+			if (logFile != NULL) {
+				// Get config file location (absolute)
+				printf("\nConfiguration files are typically JSON files\n\n");
+				printf("Type configuration file path destination: " BOLD CYAN);
+				scanf_s("%s", configPath, _MAX_PATH);
+				printf(RESET);
+				cleanInputBuffer();
+
+				// Try to save JSON config file
+				int res = saveConfig(configPath, relativeFilePath, &f, (int)as, globalOrFilters);
+				if (res == 0) {
+					sprintf_s(extraMsg, 1024, GREEN "Configurations successfully saved in '%s'" RESET, configPath);
+				}
+				else if (res == 2) {
+					sprintf_s(extraMsg, 1024, YELLOW "Default configs, no save needed" RESET);
+				}
+				else {
+					sprintf_s(extraMsg, 1024, RED "Error during config save" RESET);
+				}
+			}
+			else {
+				sprintf_s(extraMsg, 1024, YELLOW "Please select a valid operation" RESET);
+			}
+
 			break;
 
 			/* Open settings menu
@@ -961,25 +1034,43 @@ int main(int argc, char* argv[]) {
 
 								// Average execution time
 							case avgEx:
-								if (logEn.outcome == success) {
-									printf("Average execution time [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+								if (filteredEntryCount != 0) {
+									if (logEn.outcome == success) {
+										printf("Average execution time [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+									}
+									else {
+										printf("Average time before crash [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+									}
 								}
+								// No entry to consider for execution time
 								else {
-									printf("Average time before crash [" MAGENTA "%.4lf" RESET "]\n", (avgExTime / (double)filteredEntryCount));
+									printf("No entries found that matched the filters, no statistic extracted\n");
 								}
 								break;
 
 								// Trend of entry type
 							case typTrnd:
-								printf("Number of entries flagged as " GREEN "Success" RESET " [" MAGENTA "%d" RESET "\n", successCounter);
-								printf("Number of entries flagged as " RED "Failure" RESET " [" MAGENTA "%d" RESET "\n", failureCounter);
+								if (filteredEntryCount != 0) {
+									printf("Number of entries flagged as " GREEN "Success" RESET " [" MAGENTA "%d" RESET "\n", successCounter);
+									printf("Number of entries flagged as " RED "Failure" RESET " [" MAGENTA "%d" RESET "\n", failureCounter);
+								}
+								// No entry to consider for execution time
+								else {
+									printf("No entries found that matched the filters, no statistic extracted\n");
+								}
 								break;
 
 								// Trend of entry outcome
 							case outTrnd:
-								printf("Number of entries flagged as " BLUE "Information" RESET " [" MAGENTA "%d" RESET "\n", infoCounter);
-								printf("Number of entries flagged as " YELLOW "Warning" RESET " [" MAGENTA "%d" RESET "\n", warningCounter);
-								printf("Number of entries flagged as " RED "Error" RESET " [" MAGENTA "%d" RESET "\n", errorCounter);
+								if (filteredEntryCount != 0) {
+									printf("Number of entries flagged as " BLUE "Information" RESET " [" MAGENTA "%d" RESET "\n", infoCounter);
+									printf("Number of entries flagged as " YELLOW "Warning" RESET " [" MAGENTA "%d" RESET "\n", warningCounter);
+									printf("Number of entries flagged as " RED "Error" RESET " [" MAGENTA "%d" RESET "\n", errorCounter);
+								}
+								// No entry to consider for execution time
+								else {
+									printf("No entries found that matched the filters, no statistic extracted\n");
+								}
 								break;
 							}
 
@@ -1013,37 +1104,52 @@ int main(int argc, char* argv[]) {
 								if (fopen_s(&results, resFName, "w") == 0) {
 
 									// Save the number of all entries analyzed
-									printf("Number of entries analyzed: {%d}\n", entryCount);
+									fprintf(results, "Number of entries analyzed: {%d}\n", entryCount);
 
 									// Save the statistic we are interested in
 									switch (as) {
 
 										// Number of entries consistent with the filters
 									case countEntries:
-										printf("Of which [%d] match the selected filters\n", filteredEntryCount);
+										fprintf(results, "Of which [%d] match the selected filters\n", filteredEntryCount);
 										break;
 
 										// Average execution time
 									case avgEx:
-										if (logEn.outcome == success) {
-											printf("Average execution time [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+										if (filteredEntryCount != 0) {
+											if (logEn.outcome == success) {
+												fprintf(results, "Average execution time [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+											}
+											else {
+												fprintf(results, "Average time before crash [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+											}
 										}
 										else {
-											printf("Average time before crash [%.4lf]\n", (avgExTime / (double)filteredEntryCount));
+											fprintf(results, "No entries found that matched the filters, no statistic extracted\n");
 										}
 										break;
 
 										// Trend of entry type
 									case typTrnd:
-										printf("Number of entries flagged as Success [%d\n", successCounter);
-										printf("Number of entries flagged as Failure [%d\n", failureCounter);
+										if (filteredEntryCount != 0) {
+											fprintf(results, "Number of entries flagged as Success [%d\n", successCounter);
+											fprintf(results, "Number of entries flagged as Failure [%d\n", failureCounter);
+										}
+										else {
+											fprintf(results, "No entries found that matched the filters, no statistic extracted\n");
+										}
 										break;
 
 										// Trend of entry outcome
 									case outTrnd:
-										printf("Number of entries flagged as Information [%d\n", infoCounter);
-										printf("Number of entries flagged as Warning [%d\n", warningCounter);
-										printf("Number of entries flagged as Error [%d\n", errorCounter);
+										if (filteredEntryCount != 0) {
+											fprintf(results, "Number of entries flagged as Information [%d\n", infoCounter);
+											fprintf(results, "Number of entries flagged as Warning [%d\n", warningCounter);
+											fprintf(results, "Number of entries flagged as Error [%d\n", errorCounter);
+										}
+										else {
+											fprintf(results, "No entries found that matched the filters, no statistic extracted\n");
+										}
 										break;
 									}
 									printf(GREEN "Results saved in 'LogAnalizer\\%s'\n" RESET, resFName);
@@ -1055,6 +1161,7 @@ int main(int argc, char* argv[]) {
 								}
 
 								// Wait for any input to go back to settings
+								printf(GREY "\nPress any character to continue..." RESET);
 								getSingleChar();
 							}
 						}
@@ -1151,6 +1258,7 @@ void executeAvgExTime(LogEntry* entry, int* count, double* sum, int* sucCntr, in
  * This counts towards the 'type trend' statistic
  */
 void executeTrendOutcome(LogEntry* entry, int* count, double* sum, int* sucCntr, int* failCntr, int* infoCntr, int* warningCntr, int* errCntr) {
+	(*count)++;
 	switch (entry->type) {
 	case info:
 		(*infoCntr)++;
@@ -1169,6 +1277,7 @@ void executeTrendOutcome(LogEntry* entry, int* count, double* sum, int* sucCntr,
  * This counts towards the 'outcome trend' statistic
  */
 void executeTrendType(LogEntry* entry, int* count, double* sum, int* sucCntr, int* failCntr, int* infoCntr, int* warningCntr, int* errCntr) {
+	(*count)++;
 	switch (entry->outcome) {
 	case success:
 		(*sucCntr)++;

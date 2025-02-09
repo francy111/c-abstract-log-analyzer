@@ -1,0 +1,17 @@
+{
+	"logfile":	"test_data.txt",
+	"filters":	{
+		"users":	[],
+		"operations":	[],
+		"startDate":	"",
+		"startTime":	"",
+		"endDate":	"",
+		"endTime":	"",
+		"type":	-1,
+		"outcome":	-1,
+		"minExTime":	0,
+		"maxExTime":	-1
+	},
+	"statistic":	0,
+	"analysisLogic":	"AND"
+}

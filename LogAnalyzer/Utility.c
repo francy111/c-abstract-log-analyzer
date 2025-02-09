@@ -7,7 +7,15 @@
  */
 
 #include "Utility.h"
+#include "LogEntry.h"
+#include "cJSON.h"
 #include <windows.h>
+#include <stdio.h>
+#include <float.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include <libloaderapi.h>
 
 /**
@@ -362,4 +370,261 @@ void nullString(char str[], size_t size) {
 	for (int i = 0; i < size; i++)
 		str[i] = '\0';
 	return;
+}
+
+/**
+ * Saves the current configurations (selected file and/or filters)
+ * in the file with path 'filePath'
+ * 
+ * Output:
+ *	0 -> Error during save
+ *  1 -> Saved correctly
+ */
+int saveConfig(char* filePath, char* logFile, EntryFilter* filters, int statistic, int analysisLogic) {
+	int result = 1;
+	
+	FILE* f;
+	fopen_s(&f, filePath, "w");
+
+	if (f != NULL) {
+		int atLeast1 = 0;
+
+		cJSON* cfg = cJSON_CreateObject();
+
+		if (logFile != NULL && strncmp(logFile, "", 1)) {
+			cJSON_AddStringToObject(cfg, "logfile", logFile);
+		}
+
+		if ((filters != NULL)) {
+
+			cJSON* filterJSON = cJSON_CreateObject();
+			cJSON_AddItemToObject(cfg, "filters", filterJSON);
+
+			// Add user filter if present
+			cJSON* users = cJSON_CreateArray();
+			if (filters->userFilters != NULL) {
+				int j = size(filters->userFilters);
+				for (int i = 0; i < j; i++) {
+					cJSON_AddItemToArray(users, cJSON_CreateString(getItemAt(filters->userFilters, i)));
+				}
+			}
+			cJSON_AddItemToObject(filterJSON, "users", users);
+
+			// Add operation filter if present
+			cJSON* operations = cJSON_CreateArray();
+			if (filters->operationFilters != NULL) {
+				int j = size(filters->operationFilters);
+				for (int i = 0; i < j; i++) {
+					cJSON_AddItemToArray(operations, cJSON_CreateString(getItemAt(filters->operationFilters, i)));
+				}
+			}
+			cJSON_AddItemToObject(filterJSON, "operations", operations);
+
+			// Add starting date filter if present
+			char date[10];
+			nullString(date, 10);
+			char time[10];
+			nullString(time, 10);
+			if (filters->startingDate != (time_t)(-1)) {
+				struct tm dt;
+				localtime_s(&dt, &(filters->startingDate));
+				sprintf_s(date, 10, "%d/%d/%d", dt.tm_mday, dt.tm_mon + 1, dt.tm_year + 1900);
+				sprintf_s(time, 10, "%d:%d:%d", dt.tm_hour, dt.tm_min + 1, dt.tm_sec);
+
+			}
+			cJSON_AddItemToObject(filterJSON, "startDate", cJSON_CreateString(date));
+			cJSON_AddItemToObject(filterJSON, "startTime", cJSON_CreateString(time));
+
+			// Add ending date filter if present
+			nullString(date, 10);
+			nullString(time, 10);
+			if (filters->endingDate != (time_t)(-1)) {
+				struct tm dt;
+				localtime_s(&dt, &(filters->endingDate));
+				sprintf_s(date, 10, "%d/%d/%d", dt.tm_mday, dt.tm_mon + 1, dt.tm_year + 1900);
+				sprintf_s(time, 10, "%d:%d:%d", dt.tm_hour, dt.tm_min, dt.tm_sec);
+			}
+			cJSON_AddItemToObject(filterJSON, "endDate", cJSON_CreateString(date));
+			cJSON_AddItemToObject(filterJSON, "endTime", cJSON_CreateString(time));
+
+			// Add type filter if present
+			cJSON_AddItemToObject(filterJSON, "type", cJSON_CreateNumber(filters->typeFilter));
+
+			// Add outcome filter if present
+			cJSON_AddItemToObject(filterJSON, "outcome", cJSON_CreateNumber(filters->outcomeFilter));
+
+			// Add minimum execution time filter
+			cJSON_AddItemToObject(filterJSON, "minExTime", cJSON_CreateNumber(filters->minExecutionTime));
+
+			// Add maximum execution time filter
+			if (filters->maxExecutionTime == DBL_MAX) {
+				cJSON_AddItemToObject(filterJSON, "maxExTime", cJSON_CreateNumber(-1));
+			}
+			else {
+				cJSON_AddItemToObject(filterJSON, "maxExTime", cJSON_CreateNumber(filters->maxExecutionTime));
+			}
+
+			// Save chosen statistic
+			cJSON_AddItemToObject(cfg, "statistic", cJSON_CreateNumber(statistic));
+
+			// Save chosen analysis logic
+			char al[4];
+
+			// OR
+			if (analysisLogic) {
+				al[0] = 'O';
+				al[1] = 'R';
+				al[2] = '\0';
+				al[3] = '\0';
+			}
+
+			// AND
+			else {
+				al[0] = 'A';
+				al[1] = 'N';
+				al[2] = 'D';
+				al[3] = '\0';
+			}
+			cJSON_AddItemToObject(cfg, "analysisLogic", cJSON_CreateString(al));
+		}
+
+		// Save onto the file
+		char* jsonString = cJSON_Print(cfg);
+		fprintf_s(f, "%s", jsonString);
+		result = 0;
+
+		// Cleanup
+		fclose(f);
+		cJSON_Delete(cfg);
+		free(jsonString);
+	}
+	return result;
+}
+
+
+/**
+ * Loads the configurations (selected file and/or filters)
+ * from the file with path 'filePath'
+ * 
+ * Output:
+ *	0 -> Error during load
+ *  1 -> Loaded correctly
+ */
+int loadConfig(char* filePath, char* logFile, EntryFilter* filters, int* statistic, int* analysisLogic)  {
+
+	int result = 1;
+
+	FILE* f;
+	fopen_s(&f, filePath, "r");
+
+	if (f != NULL) {
+		
+		// Reset values
+		nullString(logFile, _MAX_PATH);
+		resetEntryFilter(filters);
+
+		// Get file length
+		fseek(f, 0, SEEK_END);
+		long fileSize = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		// Read all the file at once
+		char* jsonString = (char*)calloc(fileSize + 1, sizeof(char));
+		if (jsonString != NULL) {
+			fread_s(jsonString, fileSize, sizeof(char), fileSize, f);
+			jsonString[fileSize] = '\0';
+		}
+		fclose(f);
+
+		// Parse the string
+		cJSON* cfg = cJSON_Parse(jsonString);
+		if (cfg != NULL) {
+
+			cJSON* logF = cJSON_GetObjectItem(cfg, "logfile");
+			char* path = logF->valuestring;
+			strncpy_s(logFile, _MAX_PATH, path, strlen(path));
+
+			cJSON* filtersJ = cJSON_GetObjectItem(cfg, "filters");
+
+			// Users		
+			cJSON* users = cJSON_GetObjectItem(filtersJ, "users");
+			for (int i = 0; i < cJSON_GetArraySize(users); i++) {
+				insertTail(&(filters->userFilters), cJSON_GetArrayItem(users, i)->valuestring);
+			}
+
+			// Operations
+			cJSON* operations = cJSON_GetObjectItem(filtersJ, "operations");
+			for (int i = 0; i < cJSON_GetArraySize(operations); i++) {
+				insertTail(&(filters->operationFilters), cJSON_GetArrayItem(operations, i)->valuestring);
+			}
+
+			// For starting/ending date/time
+			char* buff;
+			struct tm dt;
+
+			// Starting date
+			buff = cJSON_GetObjectItem(filtersJ, "startDate")->valuestring;
+
+			// Empty value
+			if (strncmp(buff, "", 1) == 0) {
+				filters->startingDate = (time_t)(-1);
+			}
+			else {
+				sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year);
+				buff = cJSON_GetObjectItem(filtersJ, "startTime")->valuestring;
+				sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec);
+				dt.tm_mon -= 1;
+				dt.tm_year -= 1900;
+				filters->startingDate = mktime(&dt);
+			}
+
+			// Ending date
+			buff = cJSON_GetObjectItem(filtersJ, "endDate")->valuestring;
+
+			// Empty value
+			if (strncmp(buff, "", 1) == 0) {
+				filters->endingDate = (time_t)(-1);
+			}
+			else {
+				sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year);
+				buff = cJSON_GetObjectItem(filtersJ, "endTime")->valuestring;
+				sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec);
+				dt.tm_mon -= 1;
+				dt.tm_year -= 1900;
+				filters->endingDate = mktime(&dt);
+			}
+
+			// Type
+			cJSON* type = cJSON_GetObjectItem(filtersJ, "type");
+			filters->typeFilter = type->valueint;
+
+			// Outcome
+			cJSON* outcome = cJSON_GetObjectItem(filtersJ, "outcome");
+			filters->outcomeFilter = outcome->valueint;
+
+			// Min ex time
+			cJSON* minExTime = cJSON_GetObjectItem(filtersJ, "minExTime");
+			filters->minExecutionTime = minExTime->valuedouble;
+
+			// Max ex time
+			cJSON* maxExTime = cJSON_GetObjectItem(filtersJ, "maxExTime");
+			filters->maxExecutionTime = maxExTime->valuedouble;
+			if (filters->maxExecutionTime == -1) filters->maxExecutionTime = DBL_MAX;
+
+			// Load chosen statistic
+			*statistic = cJSON_GetObjectItem(cfg, "statistic")->valueint;
+
+			// Load chosen analysis logic
+			char *al;
+			al = cJSON_GetObjectItem(cfg, "analysisLogic")->valuestring;
+
+			/// Strncmp returns 0 
+			(*analysisLogic) = (strncmp(al, "OR", 2) == 0) ? 1 : ((strncmp(al, "AND", 3) == 0) ? 0 : -1);
+
+			cJSON_Delete(cfg);
+		}
+		free(jsonString);
+		result = 0;
+	}
+	return result;
 }

@@ -35,6 +35,9 @@
     <ClInclude Include="EntryFilter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cJSON.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Utility.c">
@@ -53,6 +56,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EntryFilter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

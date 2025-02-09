@@ -1,0 +1,17 @@
+{
+	"logfile":	"test_data.txt",
+	"filters":	{
+		"users":	["alice", "bob", "eve"],
+		"operations":	["write", "delete"],
+		"startDate":	"2/2/2024",
+		"startTime":	"0:1:0",
+		"endDate":	"3/2/2025",
+		"endTime":	"23:0:59",
+		"type":	2,
+		"outcome":	0,
+		"minExTime":	0.5,
+		"maxExTime":	2
+	},
+	"statistic":	1,
+	"analysisLogic":	"AND"
+}

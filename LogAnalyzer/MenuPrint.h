@@ -14,8 +14,6 @@
 #include "DLinkedList.h"
 #include "EntryFilter.h"
 
-#define MAX_PATH 260
-
 /**
  * Reads an entry from the log file and stores it in 'entry'
  *

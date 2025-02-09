@@ -111,18 +111,20 @@ int readEntry(LogEntry* entry, FILE* filePtr) {
  * (Usually used as a feedback for the previous iteration)
  */
 void mainMenu(char* cd, char* filePath, char* extraMsg) {
-	printf(CLEAR_SCREEN);
+	printf(CLEAR_SCREEN RESET);
 	printf("# # # # # Log Analyzer # # # # #\n");
 	printf("[" BOLD CYAN "f" RESET "] Change log file\n");
+	printf("[" BOLD CYAN "l" RESET "] Load configs\n");
 
 	// Print absolute file path if opened
 	if (filePath[0] != '\0') {
-		char absolutePath[MAX_PATH];
-		nullString(absolutePath, MAX_PATH);
-		GetFullPathNameA(filePath, MAX_PATH, absolutePath, NULL);
+		char absolutePath[_MAX_PATH];
+		nullString(absolutePath, _MAX_PATH);
+		GetFullPathNameA(filePath, _MAX_PATH, absolutePath, NULL);
 
+		printf("[" BOLD CYAN "d" RESET "] Save configs\n");
 		printf("[" BOLD CYAN "s" RESET "] Log analysis\n\n");
-		printf("Current selected file: [" BOLD MAGENTA "%s" RESET "]\n", absolutePath);
+		printf("Currently selected file: [" BOLD MAGENTA "%s" RESET "]\n", absolutePath);
 	}
 
 	// Otherwise show working directory so the user knows how to form a relative path
@@ -187,7 +189,7 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
 		atLeastOne = 1;
 	}
 	if (f.startingDate != (time_t)(-1)) {
-		printf("\n  from " BOLD MAGENTA);
+		printf("\n from " BOLD MAGENTA);
 		struct tm dt;
 		localtime_s(&dt, &(f.startingDate));
 		printDateTime(dt);
@@ -195,7 +197,7 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
 		atLeastOne = 1;
 	}
 	if (f.endingDate != (time_t)(-1)) {
-		printf("\n  until " BOLD MAGENTA);
+		printf("\n until " BOLD MAGENTA);
 		struct tm dt;
 		localtime_s(&dt, &(f.endingDate));
 		printDateTime(dt);
@@ -210,21 +212,21 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
 		atLeastOne = 1;
 	}
 	if (f.typeFilter != no_type) {
-		printf("\n  ");
+		printf("\n ");
 		printInfoType(f.typeFilter);
 		atLeastOne = 1;
 	}
 	if (f.outcomeFilter != unset) {
-		printf("\n  ");
+		printf("\n ");
 		printOutcome(f.outcomeFilter);
 		atLeastOne = 1;
 	}
 	if (f.minExecutionTime != 0.0) {
-		printf("\n  minimum execution time = " BOLD MAGENTA "%.3f" RESET, f.minExecutionTime);
+		printf("\n minimum execution time = " BOLD MAGENTA "%.3f" RESET, f.minExecutionTime);
 		atLeastOne = 1;
 	}
 	if (f.maxExecutionTime != DBL_MAX) {
-		printf("\n  maximum execution time = " BOLD MAGENTA "%.3f" RESET, f.maxExecutionTime);
+		printf("\n maximum execution time = " BOLD MAGENTA "%.3f" RESET, f.maxExecutionTime);
 		atLeastOne = 1;
 	}
 	if (atLeastOne) printf("\n");
