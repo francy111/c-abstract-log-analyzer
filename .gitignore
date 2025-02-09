@@ -361,3 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/LogAnalyzer/results/analysis_9-2-2025_17-16-44.txt
