@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Text Include="Crashes" />
     <Text Include="test_data.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -145,6 +146,10 @@
     <ClCompile Include="LogEntry.c" />
     <ClCompile Include="MenuPrint.c" />
     <ClCompile Include="Utility.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Default" />
+    <None Include="prova.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

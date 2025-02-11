@@ -391,6 +391,8 @@ int saveConfig(char* filePath, char* logFile, EntryFilter* filters, int statisti
 
 		cJSON* cfg = cJSON_CreateObject();
 
+		cJSON_AddStringToObject(cfg, "version", CURR_VER);
+
 		if (logFile != NULL && strncmp(logFile, "", 1)) {
 			cJSON_AddStringToObject(cfg, "logfile", logFile);
 		}
@@ -462,6 +464,14 @@ int saveConfig(char* filePath, char* logFile, EntryFilter* filters, int statisti
 			}
 			else {
 				cJSON_AddItemToObject(filterJSON, "maxExTime", cJSON_CreateNumber(filters->maxExecutionTime));
+			}
+
+			// Add maximum entry count
+			if(filters->maxEntryCount == INT_MAX) {
+				cJSON_AddItemToObject(filterJSON, "maxCount", cJSON_CreateNumber(-1));
+			}
+			else {
+				cJSON_AddItemToObject(filterJSON, "maxCount", cJSON_CreateNumber(filters->maxEntryCount));
 			}
 
 			// Save chosen statistic
@@ -540,91 +550,176 @@ int loadConfig(char* filePath, char* logFile, EntryFilter* filters, int* statist
 		cJSON* cfg = cJSON_Parse(jsonString);
 		if (cfg != NULL) {
 
-			cJSON* logF = cJSON_GetObjectItem(cfg, "logfile");
-			char* path = logF->valuestring;
-			strncpy_s(logFile, _MAX_PATH, path, strlen(path));
+			// Check version
+			cJSON* ver = cJSON_GetObjectItem(cfg, "version");
+			if (ver != NULL && checkVersion(CURR_VER, ver->valuestring)) {
 
-			cJSON* filtersJ = cJSON_GetObjectItem(cfg, "filters");
+				// File path
+				cJSON* logF = cJSON_GetObjectItem(cfg, "logfile");
+				char* path = logF->valuestring;
 
-			// Users		
-			cJSON* users = cJSON_GetObjectItem(filtersJ, "users");
-			for (int i = 0; i < cJSON_GetArraySize(users); i++) {
-				insertTail(&(filters->userFilters), cJSON_GetArrayItem(users, i)->valuestring);
+				// Try to open file to check if it is correct or not
+				FILE* test;
+				fopen_s(&test, path, "r");
+
+				if (test != NULL) {
+					fclose(test);
+
+					strncpy_s(logFile, _MAX_PATH, path, strlen(path));
+
+					cJSON* filtersJ = cJSON_GetObjectItem(cfg, "filters");
+
+					// Users		
+					cJSON* users = cJSON_GetObjectItem(filtersJ, "users");
+					for (int i = 0; i < cJSON_GetArraySize(users); i++) {
+						insertTail(&(filters->userFilters), cJSON_GetArrayItem(users, i)->valuestring);
+					}
+
+					// Operations
+					cJSON* operations = cJSON_GetObjectItem(filtersJ, "operations");
+					for (int i = 0; i < cJSON_GetArraySize(operations); i++) {
+						insertTail(&(filters->operationFilters), cJSON_GetArrayItem(operations, i)->valuestring);
+					}
+
+					// For starting/ending date/time
+					char* buff;
+					struct tm dt;
+
+					// Starting date
+					buff = cJSON_GetObjectItem(filtersJ, "startDate")->valuestring;
+
+					// Empty value
+					if (strncmp(buff, "", 1) == 0) {
+						filters->startingDate = (time_t)(-1);
+					}
+					else {
+						if (sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year) == 3) {
+							buff = cJSON_GetObjectItem(filtersJ, "startTime")->valuestring;
+							if (sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec) == 3) {
+								dt.tm_mon -= 1;
+								dt.tm_year -= 1900;
+								filters->startingDate = mktime(&dt);
+							}
+							else {
+								filters->startingDate = (time_t)(-1);
+							}
+						}
+						else {
+							filters->startingDate = (time_t)(-1);
+						}
+					}
+
+					// Ending date
+					buff = cJSON_GetObjectItem(filtersJ, "endDate")->valuestring;
+
+					// Empty value
+					if (strncmp(buff, "", 1) == 0) {
+						filters->endingDate = (time_t)(-1);
+					}
+					else {
+						if (sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year) == 3) {
+							buff = cJSON_GetObjectItem(filtersJ, "endTime")->valuestring;
+							if (sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec) == 3) {
+								dt.tm_mon -= 1;
+								dt.tm_year -= 1900;
+								filters->endingDate = mktime(&dt);
+							}
+							else {
+								filters->endingDate = (time_t)(-1);
+							}
+						}
+						else {
+							filters->endingDate = (time_t)(-1);
+						}
+					}
+
+					// Type
+					cJSON* type = cJSON_GetObjectItem(filtersJ, "type");
+					if (type->valueint >= info && type->valueint <= error)
+						filters->typeFilter = type->valueint;
+					else
+						filters->typeFilter = no_type;
+
+					// Outcome
+					cJSON* outcome = cJSON_GetObjectItem(filtersJ, "outcome");
+					if (outcome->valueint == failure || outcome->valueint == success)
+						filters->outcomeFilter = outcome->valueint;
+					else
+						filters->outcomeFilter = unset;
+
+					// Min ex time
+					cJSON* minExTime = cJSON_GetObjectItem(filtersJ, "minExTime");
+					filters->minExecutionTime = max(minExTime->valuedouble, 0.0);
+
+					// Max ex time
+					cJSON* maxExTime = cJSON_GetObjectItem(filtersJ, "maxExTime");
+					filters->maxExecutionTime = maxExTime->valuedouble;
+					if (filters->maxExecutionTime <= 0) {
+						filters->maxExecutionTime = DBL_MAX;
+					}
+					else {
+						if (filters->maxExecutionTime < filters->minExecutionTime)
+							filters->maxExecutionTime = DBL_MAX;
+					}
+
+					// Max entry count
+					cJSON* maxEntryCount = cJSON_GetObjectItem(filtersJ, "maxCount");
+					filters->maxEntryCount = maxEntryCount->valueint;
+					if (filters->maxEntryCount <= 0) {
+						filters->maxEntryCount = INT_MAX;
+					}
+
+					// Load chosen statistic
+					int stat = cJSON_GetObjectItem(cfg, "statistic")->valueint;
+					if (stat >= 0 && stat <= 3) {
+						*statistic = stat;
+					}
+					else {
+						*statistic = countEntries;
+					}
+
+					// Load chosen analysis logic
+					char* al;
+					al = cJSON_GetObjectItem(cfg, "analysisLogic")->valuestring;
+
+					/// Strncmp returns 0 
+					(*analysisLogic) = (strncmp(al, "OR", 2) == 0);
+				}
+				cJSON_Delete(cfg);
+				result = 0;
 			}
-
-			// Operations
-			cJSON* operations = cJSON_GetObjectItem(filtersJ, "operations");
-			for (int i = 0; i < cJSON_GetArraySize(operations); i++) {
-				insertTail(&(filters->operationFilters), cJSON_GetArrayItem(operations, i)->valuestring);
-			}
-
-			// For starting/ending date/time
-			char* buff;
-			struct tm dt;
-
-			// Starting date
-			buff = cJSON_GetObjectItem(filtersJ, "startDate")->valuestring;
-
-			// Empty value
-			if (strncmp(buff, "", 1) == 0) {
-				filters->startingDate = (time_t)(-1);
-			}
-			else {
-				sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year);
-				buff = cJSON_GetObjectItem(filtersJ, "startTime")->valuestring;
-				sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec);
-				dt.tm_mon -= 1;
-				dt.tm_year -= 1900;
-				filters->startingDate = mktime(&dt);
-			}
-
-			// Ending date
-			buff = cJSON_GetObjectItem(filtersJ, "endDate")->valuestring;
-
-			// Empty value
-			if (strncmp(buff, "", 1) == 0) {
-				filters->endingDate = (time_t)(-1);
-			}
-			else {
-				sscanf_s(buff, "%d/%d/%d", &dt.tm_mday, &dt.tm_mon, &dt.tm_year);
-				buff = cJSON_GetObjectItem(filtersJ, "endTime")->valuestring;
-				sscanf_s(buff, "%d:%d:%d", &dt.tm_hour, &dt.tm_min, &dt.tm_sec);
-				dt.tm_mon -= 1;
-				dt.tm_year -= 1900;
-				filters->endingDate = mktime(&dt);
-			}
-
-			// Type
-			cJSON* type = cJSON_GetObjectItem(filtersJ, "type");
-			filters->typeFilter = type->valueint;
-
-			// Outcome
-			cJSON* outcome = cJSON_GetObjectItem(filtersJ, "outcome");
-			filters->outcomeFilter = outcome->valueint;
-
-			// Min ex time
-			cJSON* minExTime = cJSON_GetObjectItem(filtersJ, "minExTime");
-			filters->minExecutionTime = minExTime->valuedouble;
-
-			// Max ex time
-			cJSON* maxExTime = cJSON_GetObjectItem(filtersJ, "maxExTime");
-			filters->maxExecutionTime = maxExTime->valuedouble;
-			if (filters->maxExecutionTime == -1) filters->maxExecutionTime = DBL_MAX;
-
-			// Load chosen statistic
-			*statistic = cJSON_GetObjectItem(cfg, "statistic")->valueint;
-
-			// Load chosen analysis logic
-			char *al;
-			al = cJSON_GetObjectItem(cfg, "analysisLogic")->valuestring;
-
-			/// Strncmp returns 0 
-			(*analysisLogic) = (strncmp(al, "OR", 2) == 0) ? 1 : ((strncmp(al, "AND", 3) == 0) ? 0 : -1);
-
-			cJSON_Delete(cfg);
 		}
 		free(jsonString);
-		result = 0;
 	}
 	return result;
+}
+
+/**
+ * Checks if the given version is compatible
+ * with the current one
+ * x.y.z
+ *   Must have the save x
+ *   The y can only be max 2 numbers apart
+ *   No requirements for z
+ */
+int checkVersion(char* curVer, char* ver) {
+	int check = 0;
+
+	// Check if the x's are the same
+	int curX, x;
+	sscanf_s(curVer, "%d", &curX);
+	sscanf_s(ver, "%d", &x);
+
+	if (curX == x) {
+
+		// Check if the y's are at max 2 numbers apart
+		int curY, y;
+		sscanf_s(curVer, "%d", &curY);
+		sscanf_s(ver, "%d", &y);
+
+		if (abs(curY - y) <= 2) {
+			check = 1;
+		}
+	}
+	return check;
 }

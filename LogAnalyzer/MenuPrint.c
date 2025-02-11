@@ -229,6 +229,10 @@ void logAnalysisMenu(enum analysis_operation operation, int filterOrFlag, EntryF
 		printf("\n maximum execution time = " BOLD MAGENTA "%.3f" RESET, f.maxExecutionTime);
 		atLeastOne = 1;
 	}
+	if (f.maxEntryCount != INT_MAX) {
+		printf("\n max entries considered = " BOLD MAGENTA "%d" RESET, f.maxEntryCount);
+		atLeastOne = 1;
+	}
 	if (atLeastOne) printf("\n");
 	printf("]\n");
 
@@ -291,6 +295,8 @@ void filterAddMenu(EntryFilter f, int startingDateFlag, int endingDateFlag, char
 
 	if (f.maxExecutionTime == DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
 
+	if (f.maxEntryCount == INT_MAX) printf("[" BOLD CYAN "e" RESET "] Maximum number of entries considered\n");
+
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 
 	printf("\n[" BOLD YELLOW "x" RESET "] Cancel\n\n");
@@ -332,6 +338,8 @@ void filterRemoveMenu(EntryFilter f, char* extraMsg) {
 	if (f.minExecutionTime != 0.0) printf("[" BOLD CYAN "-" RESET "] Minimum execution time\n");
 
 	if (f.maxExecutionTime != DBL_MAX) printf("[" BOLD CYAN "+" RESET "] Maximum execution time\n");
+
+	if (f.maxEntryCount != INT_MAX) printf("[" BOLD CYAN "e" RESET "] Maximum number of entries considered\n");
 
 	if (extraMsg[0] != '\0') printf("\n%s\n" RESET, extraMsg);
 

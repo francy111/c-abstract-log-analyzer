@@ -40,4 +40,5 @@ void resetEntryFilter(EntryFilter* f) {
 	f->outcomeFilter = unset;
 	f->minExecutionTime = 0.0;
 	f->maxExecutionTime = DBL_MAX;
+	f->maxEntryCount = INT_MAX;
 }

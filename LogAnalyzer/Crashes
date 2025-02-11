@@ -9,7 +9,7 @@
 		"endDate": "",
 		"endTime": "",
 		"type": -1,
-		"outcome": -1,
+		"outcome": 0,
 		"minExTime": 0,
 		"maxExTime": -1,
 		"maxCount": -1

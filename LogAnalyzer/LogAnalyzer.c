@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
 			cleanInputBuffer();
 
 			// Try to open JSON config file
-			if (loadConfig(configPath, relativeFilePath, &f, &(int)as, &globalOrFilters) == 0) {
+			if ((loadConfig(configPath, relativeFilePath, &f, &(int)as, &globalOrFilters) == 0)) {
 				if (relativeFilePath != NULL) {
 					fopen_s(&logFile, relativeFilePath, "r");
 					sprintf_s(extraMsg, 1024, GREEN "Configurations successfully loaded" RESET);
@@ -561,7 +561,7 @@ int main(int argc, char* argv[]) {
 							case '-':
 
 								// Acquire time
-								printf("Tempo esecuzione minimo: " BLUE CYAN);
+								printf("Minimum execution time: " BLUE CYAN);
 								scanf_s("%lf", &(f.minExecutionTime));
 								printf(RESET);
 								cleanInputBuffer();
@@ -586,7 +586,7 @@ int main(int argc, char* argv[]) {
 							case '+':
 
 								// Acquire time
-								printf("Tempo esecuzione massimo: " BLUE CYAN);
+								printf("Maximum execution time: " BLUE CYAN);
 								scanf_s("%lf", &(f.maxExecutionTime));
 								printf(RESET);
 								cleanInputBuffer();
@@ -603,6 +603,24 @@ int main(int argc, char* argv[]) {
 										f.maxExecutionTime = DBL_MAX;
 										sprintf_s(extraMsg, 1024, RED "Maximum execution time must be greater than the minimum" RESET);
 									}
+								}
+								done = 1;
+								break;
+
+								// Specifies the maximum number of entries considered
+							case 'e':
+							case 'E':
+
+								// Acquire amount
+								printf("Maximum number of entries considered: " BLUE CYAN);
+								scanf_s("%d", &(f.maxEntryCount));
+								printf(RESET);
+								cleanInputBuffer();
+
+								// Check if it makes sense (at least 0)
+								if (f.maxEntryCount < 1) {
+									f.maxEntryCount = INT_MAX;
+									sprintf_s(extraMsg, 1024, RED "At least 1 entry has to be considered" RESET);
 								}
 								done = 1;
 								break;
@@ -775,6 +793,13 @@ int main(int argc, char* argv[]) {
 								done = 1;
 								break;
 
+								// Reset maximum entry count
+							case 'e':
+							case 'E':
+								f.maxEntryCount = INT_MAX;
+								done = 1;
+								break;
+
 								/* Closes the current (sub)menu
 								 * Resets the strings and, sets the flag 'done' as true
 								 * and, next iteration, goes back to settins (sub)menu
@@ -921,7 +946,7 @@ int main(int argc, char* argv[]) {
 
 						// Read an entry from log file and Store it in the LogEntry struct 'logEn'
 						int r, matches, flag;
-						while ((r = readEntry(&logEn, logFile)) == 0) {
+						while (entryCount <= f.maxEntryCount && ((r = readEntry(&logEn, logFile)) == 0)) {
 
 							// Reset the flag for every entry
 							matches = 1;
@@ -997,18 +1022,30 @@ int main(int argc, char* argv[]) {
 							entryCount++;
 						}
 
-						// Error related to in-file structure, or with conversion from file to struct
-						if (r == 1) {
-							sprintf_s(extraMsg, 1024, RED "Possible log file corrupted" RESET);
-							analysisOutcome = failure;
-						}
-
-						// We exited because there are no more entries (presumably)
-						else {
+						// We exited because of the maximum entry count filter
+						if (entryCount == f.maxEntryCount) {
 							analysisOutcome = success;
 							sprintf_s(extraMsg, 1024, GREEN "Results avaiable at 'Results' tab" RESET);
 							fseek(logFile, 0, SEEK_SET);
 						}
+
+						// We read fewer entries, we have to manually check if it's because the file corrupted or we finished it
+						else {
+
+							// Error related to in-file structure, or with conversion from file to struct
+							if (r == 1) {
+								sprintf_s(extraMsg, 1024, RED "Possible log file corrupted" RESET);
+								analysisOutcome = failure;
+							}
+
+							// We exited because there are no more entries (presumably)
+							else {
+								analysisOutcome = success;
+								sprintf_s(extraMsg, 1024, GREEN "Results avaiable at 'Results' tab" RESET);
+								fseek(logFile, 0, SEEK_SET);
+							}
+						}
+
 						break;
 
 						/* Shows the result of the analysis

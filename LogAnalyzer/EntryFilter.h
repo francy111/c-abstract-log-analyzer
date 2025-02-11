@@ -26,6 +26,7 @@
  *	OutcomeFilter -> Outcome of the entry
  *	Minimum Execution time -> Minimum execution time of the operation (or time before failure)
  *	Maximum Execution time -> Maximum execution time of the operation (or time before failure)
+ *  MaxEntryCount -> Maximum number of entries actually considered
  */
 typedef struct
 {
@@ -37,6 +38,7 @@ typedef struct
 	enum outcomes outcomeFilter;
 	double minExecutionTime;
 	double maxExecutionTime;
+	int maxEntryCount;
 } EntryFilter;
 
 /**

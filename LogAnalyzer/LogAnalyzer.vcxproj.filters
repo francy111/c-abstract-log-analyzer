@@ -18,6 +18,9 @@
     <Text Include="test_data.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="Crashes">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility.h">
@@ -61,5 +64,13 @@
     <ClCompile Include="cJSON.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Default">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="prova.json">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

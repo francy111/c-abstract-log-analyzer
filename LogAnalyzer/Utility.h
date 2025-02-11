@@ -30,6 +30,8 @@
 #define BOLD "\x1B[1m"
 #define WHITEBG "\e[47m"
 
+#define CURR_VER "0.0.1"
+
 /**
  * Enumeration that represent the various statistic to measure
  * between all the entries that match our filters
@@ -161,5 +163,15 @@ int saveConfig(char* filePath, char* logFile, EntryFilter* filters, int statisti
  * from the file with path 'filePath'
  */
 int loadConfig(char* filePath, char* logFile, EntryFilter* filters, int* statistic, int* analysisLogic);
+
+/**
+ * Checks if the given version is compatible
+ * with the current one 
+ * x.y.z 
+ *   Must have the save x
+ *   The y can only be max 2 numbers apart
+ *   No requirements for z
+ */
+int checkVersion(char* curVer, char* ver);
 
 #endif
